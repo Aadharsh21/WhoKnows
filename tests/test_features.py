@@ -61,6 +61,20 @@ class AnswerTests(TeamCase):
         self.assertEqual(self.a["nina"].ask_question("what color is the logo?", people=["omar"]), [])
         self.assertIn("Nothing in Omar's shareable notes answers that.", self.phone_texts("nina")[-1])
 
+    def test_a_passed_on_question_waits_for_a_sleeping_owner(self):
+        handed = self.a["nina"].pass_on("is the 409 new?", people=["omar"])
+        self.assertEqual(handed, [("omar", "around 7:00 AM")])
+        self.assertEqual(self.steps("phone", person="omar"), [])  # asleep: it waits for his morning summary
+        self.assertTrue(any("is the 409 new?" in d for d in self.a["omar"].digest))
+        self.assertIn("who will see it around 7:00 AM", self.phone_texts("nina")[-1])
+
+    def test_a_passed_on_question_goes_to_the_best_match_only(self):
+        self.a["nina"].find_who_knows("checkout fails. who knows the payments code?")
+        handed = self.a["nina"].pass_on("why did the retry change yesterday?")
+        self.assertEqual([who for who, _ in handed], ["theo"])  # Theo made the retry change
+        self.assertTrue(any("why did the retry change" in t for t in self.phone_texts("theo")))
+        self.assertEqual(self.a["omar"].digest, [])
+
 
 class BusFactorTests(TeamCase):
     start = "01:30"

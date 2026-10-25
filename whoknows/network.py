@@ -18,6 +18,8 @@ def _label(kind: str, body: dict) -> str:
     body = body or {}
     if kind == "who_knows":
         return "who knows this?"
+    if kind == "question":
+        return "can you answer this?" if body.get("hand_over") else "do your notes answer this?"
     if kind == "fetch":
         return f"anything on {body.get('part')}?"
     if kind == "share_request":
@@ -52,6 +54,11 @@ def _reply_label(kind: str, reply: dict) -> str:
         word = {"no": "no", "owner": "owns it", "touched": "changed it recently",
                 "claims": "says it's theirs"}.get(reply.get("answer"), "no")
         return word + (" (asleep)" if reply.get("status") else "")
+    if kind == "question":
+        if reply.get("handed"):
+            return "they'll see it " + (reply.get("eta") or "now")
+        quoted = [a["path"] for a in reply.get("answers", [])]
+        return "quoted " + ", ".join(quoted) if quoted else "nothing in my notes"
     if kind in ("fetch", "share_request") and (reply.get("shared") or reply.get("mentions")):
         n, m = len(reply.get("shared", [])), len(reply.get("mentions", []))
         bits = [f"sent {', '.join(f['path'] for f in reply.get('shared', []))}"] if n else []
@@ -106,11 +113,13 @@ class Network:
     def advance_to(self, t: int) -> None:
         """Move the clock forward, putting people to sleep and waking them up in order."""
         events = []
-        for index, aid in enumerate(self.order):
-            for s, e in self.agents[aid].person.get("sleep", ()):
-                for minute, state in ((clock.parse(s), "asleep"), (clock.parse(e), "awake")):
-                    if self.t < minute <= t:
-                        events.append((minute, index, aid, state))
+        for day in range(self.t // clock.DAY, t // clock.DAY + 1):  # usually one night; the benchmark runs a week
+            base = day * clock.DAY
+            for index, aid in enumerate(self.order):
+                for s, e in self.agents[aid].person.get("sleep", ()):
+                    for minute, state in ((base + clock.parse(s), "asleep"), (base + clock.parse(e), "awake")):
+                        if self.t < minute <= t:
+                            events.append((minute, index, aid, state))
         for minute, _, aid, state in sorted(events):
             self.t = minute
             self.record("status", person=aid, state=state)

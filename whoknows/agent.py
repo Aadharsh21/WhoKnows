@@ -88,6 +88,7 @@ class PersonalAgent:
         self.quotes: dict[tuple, str] = {}        # (owner, path) -> passage another agent quoted to me
         self.trust: list[dict] = []               # teammates whose small changes my person lets through
         self.last_hits: list[str] = []            # who answered my person's last "who knows"
+        self.last_whys: dict[str, str] = {}       # and the one line each gave as the reason
         self._seq = 0
         self._keys: dict[str, int] = {}
 
@@ -211,6 +212,12 @@ class PersonalAgent:
     def on_question(self, body, sender):
         """Answer from my person's own shareable files, quoting the exact passage and naming the file."""
         question = body.get("question", "")
+        if body.get("hand_over"):
+            # The notes didn't answer it, so the question goes to my person, at a decent hour.
+            who = self.name(sender)
+            self.tell(f"{who} asked: \"{question}\" Your shareable notes don't answer it. Reply to {who} when you can.",
+                      short=f"{who} asked: \"{question}\" (your notes don't answer it)")
+            return {"handed": True, "eta": self.eta()}
         want = search.terms(question)
         need = 1 if len(want) <= 2 else 2
         topics = set(parts_in(question, self.parts))
@@ -451,6 +458,7 @@ class PersonalAgent:
         hits = sorted(((o, r) for o, r in answers.items() if r.get("answer") in RANK),
                       key=lambda item: -RANK[item[1]["answer"]])
         self.last_hits = [o for o, _ in hits]
+        self.last_whys = {o: r.get("why", "") for o, r in hits}
         if not hits:
             self.tell("Nobody's agent knows of anyone working on that yet.")
             return []
@@ -482,6 +490,26 @@ class PersonalAgent:
             text += f"\n{self.name(other)} also has {join_names(paths)}, which {verb} {self.name(other)}'s OK."
         self.tell(text)
         return found
+
+    def rank(self, question: str, people) -> list:
+        """Order the people who know a part by how well their reason matches the question. A question
+        about the retry change goes first to whoever made the retry change. Ties keep the who-knows order."""
+        want = search.terms(question)
+        return sorted(people, key=lambda p: -len(want & search.terms(self.last_whys.get(p, ""))))
+
+    def pass_on(self, question: str, people=None) -> list:
+        """When the notes don't answer it, hand the question to the person most likely to know. Their agent
+        shows it to them now if they're awake, or in their morning summary if not. Never at night."""
+        people = self.rank(question, list(people or self.last_hits))[:1]
+        handed = []
+        for other in people:
+            r = self.net.send(self.id, other, "question", {"question": question, "hand_over": True})
+            if r.get("handed"):
+                handed.append((other, r.get("eta")))
+        if handed:
+            self.tell(" ".join(f"I passed your question to {self.name(o)}"
+                               + (f", who will see it {eta}." if eta else ", who is awake.") for o, eta in handed))
+        return handed
 
     def fetch_from(self, owner: str, part: str, look_for=()) -> dict:
         r = self.net.send(self.id, owner, "fetch", {"part": part})
