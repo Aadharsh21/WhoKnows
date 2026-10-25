@@ -6,7 +6,7 @@ Everyone on a team gets their own AI agent. When you need something, your agent 
 
 Built for the Cubbie Hackathon at DevHacks 2026, Track 2 (agent-to-agent coordination).
 
-**[Play the demo](site/index.html)** (open `site/` through any web server) · **[Run it in Discord](#run-it-in-discord)** · **[Run it in a terminal](#run-it-in-a-terminal)**
+**[Play the demo](https://aadharsh21.github.io/WhoKnows/)** · **[Run it in Discord](#run-it-in-discord)** · **[Run it in a terminal](#run-it-in-a-terminal)**
 
 ## The problem
 
