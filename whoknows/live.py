@@ -200,12 +200,18 @@ class Live:
         return (f"You're {agent.person['name']} ({agent.person['role']}). It's {clock.fmt(self.net.t)} in the demo "
                 f"and you're {state}. Your agent works for you from now on. Say help to see what you can ask it.")
 
-    def move_clock(self, hhmm: str) -> str:
+    def move_clock(self, hhmm: str, user=None) -> str | None:
         t = clock.parse(hhmm)
         if t <= self.net.t:
             return f"Demo time only moves forward. It's {clock.fmt(self.net.t)}. Say reset to start the night over."
         self.net.advance_to(t)
-        return f"It's now {clock.fmt(t)} in the demo."
+        done = f"It's now {clock.fmt(t)} in the demo."
+        if user is None:
+            return done
+        # Everything that happened on the way (who fell asleep at 2:00, who woke at 7:00) is already queued,
+        # so the new time goes after it and the chat reads in order instead of jumping back to 2:00 AM.
+        self.out.append(Out("dm", user, done))
+        return None
 
     def _wake_early(self, person: str) -> None:
         agent = self.net.agents[person]
@@ -252,7 +258,7 @@ class Live:
             self.reset()
             return "Started the night over at 1:07 AM. Everyone kept their seat."
         if act == "clock":
-            return self.move_clock(a["before"])
+            return self.move_clock(a["before"], user)
         if act == "check":
             self.net.team_check()
             return "Ran the team board check. The results are in #team-board."
