@@ -1,0 +1,10 @@
+# The site is static: it replays traces the Python engine already generated.
+# Regenerate them with: python3 -m whoknows --export site/traces
+[build]
+  publish = "site"
+  command = "echo 'static site, nothing to build'"
+
+[[headers]]
+  for = "/traces/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
