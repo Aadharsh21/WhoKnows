@@ -8,6 +8,7 @@ news goes into a morning summary.
 
 from __future__ import annotations
 
+import ast
 import re
 from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
@@ -19,6 +20,36 @@ from . import search
 from .gate import Gate, looks_secret
 from .policy import AUTO, NEVER
 from .workspace import digest
+
+def _ast_without_docstrings(source: str) -> str:
+    """Return Python structure ignoring comments, formatting, and docstrings."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr) and
+                    isinstance(body[0].value, ast.Constant) and
+                    isinstance(body[0].value.value, str)):
+                del body[0]
+    return ast.dump(tree, include_attributes=False)
+
+
+def safe_automatic_change(path: str, old: str, new: str) -> bool:
+    """Auto-apply only prose edits or Python changes with identical executable AST.
+
+    The owner still approves the initial trust rule, and still sees every auto-edit
+    with an undo option. Other code types require approval for each edit.
+    """
+    suffix = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+    if suffix in ("md", "txt", "rst"):
+        return True
+    if suffix != "py":
+        return False
+    try:
+        return _ast_without_docstrings(old) == _ast_without_docstrings(new)
+    except (SyntaxError, ValueError):
+        return False
+
 
 SKIP_APPROVAL = re.compile(
     r"(?i)without (?:asking|approval|review)|skip (?:the |your |their )?(?:approval|review)"
@@ -226,7 +257,7 @@ class PersonalAgent:
             tier = self.policy.tier(path)
             if tier == NEVER:
                 continue
-            if tier == AUTO or (path, sender) in self.gate.approved:
+            if tier == AUTO or self.gate.allowed(path, sender):
                 passage, score = search.best_passage(self.ws.read(path), want)
                 if passage and score >= need:
                     answers.append({"path": path, "text": passage, "score": score})
@@ -251,7 +282,7 @@ class PersonalAgent:
             tier = self.policy.tier(path)
             if tier == NEVER:
                 continue
-            if tier == AUTO or (path, sender) in self.gate.approved:
+            if tier == AUTO or self.gate.allowed(path, sender):
                 shared.append(self._file(path, sender))
             else:
                 mentions.append({"path": path, "needs": f"{self.first}'s OK"})
@@ -276,14 +307,14 @@ class PersonalAgent:
             self._flag(f"{who}'s agent asked for your {path} at {clock.fmt(self.net.t)}. "
                        f"I didn't share it or say it exists.")
             return {"status": "unavailable"}
-        if tier == AUTO or (path, sender) in self.gate.approved:
+        if tier == AUTO or self.gate.allowed(path, sender):
             if tier == AUTO:
                 self._receipt(f"shared your {path} with {who}", files=[path])
             return {"shared": [self._file(path, sender)]}
 
         def answer(choice):
             if choice == "share":
-                self.gate.approved.add((path, sender))
+                self.gate.approve(path, sender)
                 self.net.send(self.id, sender, "delivery", {"shared": [self._file(path, sender)]})
             else:
                 self.net.send(self.id, sender, "delivery", {"kept": path})
@@ -705,7 +736,8 @@ class PersonalAgent:
         return path.rsplit("/", 1)[0] + "/*" if "/" in path else path
 
     def _trusted(self, prop: Proposal) -> dict | None:
-        if prop.flags or prop.added + prop.removed > self.SMALL:
+        if (prop.flags or prop.added + prop.removed > self.SMALL or
+                not safe_automatic_change(prop.path, prop.old, prop.new)):
             return None
         return next((rule for rule in self.trust
                      if rule["requester"] == prop.requester and fnmatchcase(prop.path, rule["glob"])), None)

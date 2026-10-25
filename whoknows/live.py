@@ -176,6 +176,8 @@ class Live:
             return "That question has expired."
         if self.seats.get(person) != user:
             return "That question is for someone else."
+        if value not in {v for v, _ in item.options}:
+            return "That's an invalid option. Please use one of the approval buttons."
         del self.pending[qid]
         self.net.choices[item.key] = value
         choice = self.net.decide(person, item.key, item.prompt, item.options, **item.extra)

@@ -41,8 +41,20 @@ class Gate:
         self.owner = owner
         self.ws = workspace
         self.policy = policy
-        self.approved: set[tuple[str, str]] = set()  # (path, recipient) the owner said yes to
+        self.approved: dict[tuple[str, str], str] = {}  # (path, recipient) -> approved content digest
         self.blocked: list[dict] = []                 # what this gate stopped
+
+    def approve(self, path: str, recipient: str) -> None:
+        """Approve only the file version the owner actually reviewed."""
+        version = self.ws.hash(path)
+        if version is None:
+            raise ValueError("cannot approve a missing file")
+        self.approved[(path, recipient)] = version
+
+    def allowed(self, path: str, recipient: str) -> bool:
+        """A later edit invalidates the earlier authorization."""
+        return (self.ws.exists(path) and
+                self.approved.get((path, recipient)) == self.ws.hash(path))
 
     def check(self, kind: str, body: dict | None, recipient: str) -> tuple[bool, str]:
         body = body or {}
@@ -55,7 +67,7 @@ class Gate:
             tier = self.policy.tier(path)
             if tier == NEVER:
                 return self._stop(kind, recipient, "private file")
-            if tier == ASK and (path, recipient) not in self.approved:
+            if tier == ASK and not self.allowed(path, recipient):
                 return self._stop(kind, recipient, "needs the owner's OK first")
         for item in body.get("answers", []) or []:
             path = item.get("path", "")
@@ -66,7 +78,7 @@ class Gate:
             tier = self.policy.tier(path)
             if tier == NEVER:
                 return self._stop(kind, recipient, "private file")
-            if tier == ASK and (path, recipient) not in self.approved:
+            if tier == ASK and not self.allowed(path, recipient):
                 return self._stop(kind, recipient, "needs the owner's OK first")
         for item in body.get("mentions", []) or []:
             if self.policy.tier(item.get("path", "")) == NEVER:
