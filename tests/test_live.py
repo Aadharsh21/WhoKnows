@@ -1,6 +1,7 @@
+import time
 import unittest
 
-from whoknows import scenario
+from whoknows import clock, scenario
 from whoknows.live import Live
 from whoknows.understand import by_rules
 
@@ -80,6 +81,22 @@ class LiveTests(unittest.TestCase):
         live.handle(self.nina, "pass it on")
         self.assertIn("who will see it around 7:00 AM", self.dms(self.nina)[-1].text)
         self.assertEqual(self.dms(self.omar), [])  # asleep: it waits for his morning summary
+
+    def test_a_quiet_night_starts_over_for_the_next_visitor(self):
+        live, t0 = self.live, time.time() + 5
+        live.handle(self.nina, "skip to 7:00", now=t0)
+        self.assertEqual(clock.fmt(live.net.t), "7:00 AM")
+        reply = live.handle("user-c", "seat priya", now=t0 + Live.QUIET + 1)
+        self.assertIn("started over at 1:07 AM", reply)
+        self.assertIn("You're Priya", reply)
+        self.assertEqual(clock.fmt(live.net.t), "1:07 AM")
+        self.assertNotIn("nina", live.seats)
+
+    def test_reset_waits_while_someone_else_is_playing(self):
+        live, t0 = self.live, time.time() + 5
+        live.handle(self.omar, "status", now=t0)
+        self.assertIn("Someone else is playing", live.handle(self.nina, "reset", now=t0 + 100))
+        self.assertIn("Started the night over", live.handle(self.nina, "reset", now=t0 + Live.BUSY + 101))
 
     def test_people_without_a_seat_are_asked_to_take_one(self):
         self.assertIn("Take a seat first", self.live.handle("user-c", "who knows the payments code?"))

@@ -12,6 +12,7 @@ is a thin layer that delivers those messages.
 from __future__ import annotations
 
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -54,11 +55,14 @@ class Out:
 
 class Live:
     START = "01:07"
+    QUIET = 20 * 60   # seconds of silence before the night starts over for whoever comes next
+    BUSY = 10 * 60    # someone who wrote this recently is still playing
 
     def __init__(self, ai=None):
         self.ai = ai
         self.understand = Understander(ai)
         self.seats: dict[str, object] = {}
+        self.last_seen: dict = {}  # user -> when they last wrote, so a shared night survives many visitors
         self.out: list[Out] = []
         self.reset()
 
@@ -165,7 +169,8 @@ class Live:
         self.out.append(Out("dm", self.seats[person], item.prompt, question=qid, options=list(item.options),
                             diffs=item.extra.get("diffs")))
 
-    def answer(self, user, qid: str, value: str) -> str:
+    def answer(self, user, qid: str, value: str, now: float | None = None) -> str:
+        self.last_seen[user] = time.time() if now is None else now
         person, item = self.pending.get(qid, (None, None))
         if item is None:
             return "That question has expired."
@@ -206,7 +211,27 @@ class Live:
         self.net.record("status", person=person, state="awake")
         agent.wake()
 
-    def handle(self, user, text: str) -> str | None:
+    def handle(self, user, text: str, now: float | None = None) -> str | None:
+        """What someone typed in a DM. Returns the bot's direct reply, if any; everything else goes to out."""
+        now = time.time() if now is None else now
+        note = self._start_over_if_quiet(now)
+        others = [u for u, t in self.last_seen.items() if u != user and now - t < self.BUSY]
+        self.last_seen[user] = now
+        reply = self._handle(user, text, others_playing=bool(others))
+        if note:
+            return note + ("\n\n" + reply if reply else "")
+        return reply
+
+    def _start_over_if_quiet(self, now: float) -> str | None:
+        """A public server gets visitors hours apart. Give each new one a fresh night instead of the last one's."""
+        if not self.last_seen or now - max(self.last_seen.values()) < self.QUIET:
+            return None
+        self.seats.clear()
+        self.last_seen.clear()
+        self.reset()
+        return "It had been quiet for a while, so the night started over at 1:07 AM and every seat is free again."
+
+    def _handle(self, user, text: str, others_playing: bool = False) -> str | None:
         me = self.seat_of(user)
         a = self.understand.parse(text, me, self.net.team)
         act = a["action"]
@@ -219,6 +244,9 @@ class Live:
         if act == "board":
             return self.board_text(self.net.board_snapshot())
         if act == "reset":
+            if others_playing:
+                return ("Someone else is playing right now, so I won't restart the night under them. "
+                        "It starts over on its own after 20 quiet minutes.")
             self.reset()
             return "Started the night over at 1:07 AM. Everyone kept their seat."
         if act == "clock":

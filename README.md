@@ -16,6 +16,17 @@ On a team of ten, nobody knows who knows what. The answer to "who did the paymen
 
 Psychologists call a team's sense of who knows what its *transactive memory* (Wegner, 1985): groups work best when each member knows where knowledge lives instead of holding all of it. WhoKnows gives every teammate an agent that is that memory for them, and that can act on it without breaking anyone's boundaries.
 
+## Who needs this
+
+Any group where the person who knows is often busy or asleep:
+
+- **Capstone and senior design teams:** eight to twelve people, one demo day, and nobody remembers who wrote which part.
+- **Hackathon teams:** thirty-six hours, and half the team is asleep at any given moment.
+- **Student orgs:** officers graduate and take what they know with them. The backup check spots parts only one person knows.
+- **Research labs:** "which script made figure 3?" gets answered from a grad student's own notes, with the file named.
+- **Teams across time zones:** online and international students, whose teammates are asleep twelve hours away.
+- **Course staff:** who's grading which question, and where the rubric lives, without a message to every TA.
+
 ## The story
 
 1:07 AM. A 10-person capstone team demos at 9:00 AM. Checkout fails after the card step, and Nina doesn't know who wrote the payments code.
@@ -162,7 +173,7 @@ ask omar's agent to send the same idempotency key on every retry in charge.py
 skip to 7:00
 ```
 
-Have a friend take Omar's seat and they'll get the approve and decline buttons at 7:00. Without an API key the bot understands the phrasings above and similar ones. With a key, Claude Haiku reads anything else into the same small set of actions, and Claude Sonnet drafts changes the demo has no recipe for. A model's output is only ever a proposal that the owner approves.
+Have a friend take Omar's seat and they'll get the approve and decline buttons at 7:00. To host a public server for several people at once, see [docs/discord.md](docs/discord.md): the shared night starts over by itself after 20 quiet minutes. Without an API key the bot understands the phrasings above and similar ones. With a key, Claude Haiku reads anything else into the same small set of actions, and Claude Sonnet drafts changes the demo has no recipe for. A model's output is only ever a proposal that the owner approves.
 
 ## Tests
 
@@ -170,7 +181,7 @@ Have a friend take Omar's seat and they'll get the approve and decline buttons a
 python3 -m unittest discover -s tests
 ```
 
-73 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
+75 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
 
 ## Project layout
 
