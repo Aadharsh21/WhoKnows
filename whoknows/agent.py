@@ -15,6 +15,7 @@ from typing import Callable
 
 from . import clock, diffs
 from .cards import RANK, part_for_path, parts_in
+from . import search
 from .gate import Gate, looks_secret
 from .policy import AUTO, NEVER
 from .workspace import digest
@@ -46,7 +47,7 @@ class Proposal:
     added: int
     removed: int
     flags: list = field(default_factory=list)
-    status: str = "pending"   # pending, applied, declined, not_picked, obsolete
+    status: str = "pending"   # pending, applied, declined, not_picked, obsolete, undone
     rivals: set = field(default_factory=set)
     redrafted: bool = False
 
@@ -82,7 +83,13 @@ class PersonalAgent:
         self.waiting: list[Ask] = []
         self.digest: list[str] = []
         self.alerts: list[str] = []
+        self.receipts: list[str] = []            # what I did for my person without asking, while they slept
+        self.shared_unasked: set[str] = set()     # files behind those receipts
+        self.quotes: dict[tuple, str] = {}        # (owner, path) -> passage another agent quoted to me
+        self.trust: list[dict] = []               # teammates whose small changes my person lets through
+        self.last_hits: list[str] = []            # who answered my person's last "who knows"
         self._seq = 0
+        self._keys: dict[str, int] = {}
 
     # ---------------------------------------------------------------- basics
 
@@ -115,6 +122,11 @@ class PersonalAgent:
         else:
             self.digest.append(f"{clock.fmt(self.net.t)}: {short or text}")
 
+    def _key(self, what: str) -> str:
+        """A fresh name for a question to my person: omar_fix, then omar_fix_2, and so on."""
+        n = self._keys[what] = self._keys.get(what, 0) + 1
+        return f"{self.id}_{what}" if n == 1 else f"{self.id}_{what}_{n}"
+
     def ask(self, key: str, prompt: str, options: list, on_answer, order: int = 5, **extra) -> None:
         """Ask my person something. If they're asleep, it waits until they wake up."""
         item = Ask(key, prompt, options, on_answer, order, extra)
@@ -134,6 +146,12 @@ class PersonalAgent:
         else:
             self.alerts.append(text)
 
+    def _receipt(self, text: str, files=()) -> None:
+        """Keep a record of anything done for my person without asking them, while they slept."""
+        if not self.awake():
+            self.receipts.append(f"{clock.fmt(self.net.t)}: {text}")
+            self.shared_unasked.update(files)
+
     def wake(self) -> None:
         if self.alerts:
             self.net.phone(self.id, "Heads up from last night:\n" + "\n".join(f"- {a}" for a in self.alerts),
@@ -143,12 +161,31 @@ class PersonalAgent:
             self.net.phone(self.id, "While you were asleep:\n" + "\n".join(f"- {d}" for d in self.digest),
                            tone="digest")
             self.digest = []
+        if self.receipts:
+            self.net.phone(self.id, "What I did for you while you slept, without asking:\n"
+                           + "\n".join(f"- {r}" for r in self.receipts), tone="receipts")
+            self.receipts = []
+            if self.shared_unasked:
+                files = sorted(self.shared_unasked)
+                self.shared_unasked = set()
+
+                def answer(choice, files=files):
+                    if choice == "tighten":
+                        self.policy.ask_first.update(files)
+                        self.tell(f"Done. I'll ask you before sharing {join_names(files)} from now on.")
+
+                self.waiting.append(Ask(self._key("receipts"),
+                                        f"I shared {join_names(files)} because your rules say it's fine. Keep it that way?",
+                                        [("ok", "Keep it that way"), ("tighten", "Ask me first next time")],
+                                        answer, order=9))
         for path in sorted({p.path for p in self.proposals.values() if p.status == "pending"}):
             self._review_changes(path)
         waiting, self.waiting = sorted(self.waiting, key=lambda a: a.order), []
-        for item in waiting:
+        for item in [w for w in waiting if w.order < 7]:
             self._answer(item)
         self._review_time()
+        for item in [w for w in waiting if w.order >= 7]:
+            self._answer(item)
 
     # ------------------------------------------------- answering other agents
 
@@ -165,7 +202,37 @@ class PersonalAgent:
         reply = {"answer": claim.level, "part": claim.part, "why": claim.why}
         if not self.awake():
             reply["status"] = f"asleep until about {self.wakes_at()}"
+            part = self._part_name(claim.part)
+            said = {"owner": f"you own the {part}", "touched": f"you worked on the {part} recently",
+                    "claims": f"you're on the {part}"}[claim.level]
+            self._receipt(f"told {self.name(sender)}'s agent {said}")
         return reply
+
+    def on_question(self, body, sender):
+        """Answer from my person's own shareable files, quoting the exact passage and naming the file."""
+        question = body.get("question", "")
+        want = search.terms(question)
+        need = 1 if len(want) <= 2 else 2
+        topics = set(parts_in(question, self.parts))
+        answers, mentions = [], []
+        for path in self.ws.files():
+            tier = self.policy.tier(path)
+            if tier == NEVER:
+                continue
+            if tier == AUTO or (path, sender) in self.gate.approved:
+                passage, score = search.best_passage(self.ws.read(path), want)
+                if passage and score >= need:
+                    answers.append({"path": path, "text": passage, "score": score})
+            elif part_for_path(path, self.parts) in topics:
+                mentions.append({"path": path, "needs": f"{self.first}'s OK"})
+        answers = sorted(answers, key=lambda a: -a["score"])[:2]
+        for a in answers:
+            self.holders.setdefault(a["path"], set()).add(sender)
+            self._receipt(f"answered {self.name(sender)}'s question from your {a['path']}", files=[a["path"]])
+        if mentions:
+            self._receipt(f"told {self.name(sender)}'s agent you have {join_names(m['path'] for m in mentions)}, "
+                          f"which need your OK")
+        return {"answers": answers, "mentions": mentions}
 
     def on_fetch(self, body, sender):
         part = body.get("part")
@@ -181,6 +248,9 @@ class PersonalAgent:
                 shared.append(self._file(path, sender))
             else:
                 mentions.append({"path": path, "needs": f"{self.first}'s OK"})
+        if shared:
+            paths = [f["path"] for f in shared]
+            self._receipt(f"shared your {join_names(paths)} with {self.name(sender)}", files=paths)
         return {"shared": shared, "mentions": mentions}
 
     def on_share_request(self, body, sender):
@@ -200,6 +270,8 @@ class PersonalAgent:
                        f"I didn't share it or say it exists.")
             return {"status": "unavailable"}
         if tier == AUTO or (path, sender) in self.gate.approved:
+            if tier == AUTO:
+                self._receipt(f"shared your {path} with {who}", files=[path])
             return {"shared": [self._file(path, sender)]}
 
         def answer(choice):
@@ -209,7 +281,7 @@ class PersonalAgent:
             else:
                 self.net.send(self.id, sender, "delivery", {"kept": path})
 
-        self.ask(f"{self.id}_share", f"{who} asked for your {path}. Share it?",
+        self.ask(self._key("share"), f"{who} asked for your {path}. Share it?",
                  [("share", "Share it"), ("keep", "Keep it private")], answer, order=6)
         return {"status": "queued", "eta": self.eta()}
 
@@ -229,7 +301,7 @@ class PersonalAgent:
                 reply["shared"] = [self._file(p, sender) for p in notes]
             self.net.send(self.id, sender, "help_answer", reply)
 
-        self.ask(f"{self.id}_help", f"{who}'s agent: \"{about}.\" Hop on a call for {minutes} minutes now?",
+        self.ask(self._key("help"), f"{who}'s agent: \"{about}.\" Hop on a call for {minutes} minutes now?",
                  [("yes", "Yes, call now"), ("no", "Not now")], answer)
         return {"status": "asking"}
 
@@ -282,6 +354,10 @@ class PersonalAgent:
         for requester in sorted({q.requester for q in rivals} - {sender}):
             self.net.after(lambda r=requester: self.net.send(
                 self.id, r, "change_status", {"status": "collision", "path": path, "with": [who]}))
+        rule = None if rivals else self._trusted(prop)
+        if rule:
+            self.net.after(lambda: self._apply_by_rule(prop, rule))
+            return {"status": "auto", "id": prop.id, "path": path, "added": added, "removed": removed}
         if self.awake():
             self.net.after(lambda: self._review_changes(path))
         reply = {"status": "queued", "id": prop.id, "path": path, "eta": self.eta(), "added": added, "removed": removed}
@@ -345,11 +421,17 @@ class PersonalAgent:
         reason = self._interest(sender, path, c.get("part")) or "you're on the team"
         requested = [r for r in c.get("requested_by") or []]
         size = f"+{c.get('added', 0)} -{c.get('removed', 0)}"
-        if self.id in requested:
-            self.tell(f"{owner} approved your change to {path} ({size}): \"{c.get('message', '')}\"",
-                      short=f"{owner} approved your change to {path} ({size})", card=c, reason=reason)
+        if c.get("undo_of") == self.id:
+            self.tell(f"{owner} undid your change to {path} ({size}).",
+                      short=f"{owner} undid your change to {path}", card=c, reason=reason)
+        elif self.id in requested:
+            if not c.get("by_rule"):  # a change saved under a trust rule was already confirmed to the requester
+                self.tell(f"{owner} approved your change to {path} ({size}): \"{c.get('message', '')}\"",
+                          short=f"{owner} approved your change to {path} ({size})", card=c, reason=reason)
         else:
-            if requested:
+            if requested and c.get("by_rule"):
+                by = f"Requested by {join_names(self.name(r) for r in requested)}, saved under a rule {owner} set."
+            elif requested:
                 by = f"Requested by {join_names(self.name(r) for r in requested)}, approved by {owner}."
             else:
                 by = f"Edited by {owner}."
@@ -357,7 +439,7 @@ class PersonalAgent:
                       f"You're seeing this because {reason}.",
                       short=f"{owner}'s {path} changed ({size}): {c.get('message', '')}",
                       card=c, reason=reason)
-        if (sender, path) in self.copies:
+        if (sender, path) in self.copies or (sender, path) in self.quotes:
             self.net.after(lambda: self._refresh(sender, path))
         return {"status": "seen"}
 
@@ -368,6 +450,7 @@ class PersonalAgent:
                    for other in self.net.others(self.id)}
         hits = sorted(((o, r) for o, r in answers.items() if r.get("answer") in RANK),
                       key=lambda item: -RANK[item[1]["answer"]])
+        self.last_hits = [o for o, _ in hits]
         if not hits:
             self.tell("Nobody's agent knows of anyone working on that yet.")
             return []
@@ -375,6 +458,30 @@ class PersonalAgent:
         rest = len(answers) - len(hits)
         self.tell(" ".join(lines) + (f" The other {rest} said no." if rest else ""))
         return hits
+
+    def ask_question(self, question: str, people=None) -> list:
+        """Ask the people who know (or everyone) and collect answers quoted from their shareable notes."""
+        people = list(people or self.last_hits or self.net.others(self.id))
+        found, mentions = [], {}
+        for other in people:
+            r = self.net.send(self.id, other, "question", {"question": question})
+            for a in r.get("answers", []):
+                found.append((other, a))
+                self.quotes[(other, a["path"])] = a["text"]
+            if r.get("mentions"):
+                mentions[other] = [m["path"] for m in r["mentions"]]
+        bits = []
+        if found:
+            bits.append("Answers from your teammates' own notes:")
+            bits += [f"- {self.name(o)}'s {a['path']}: \"{' '.join(a['text'].split())}\"" for o, a in found]
+        else:
+            bits.append(f"Nothing in {join_names(self.name(p) for p in people)}'s shareable notes answers that.")
+        text = "\n".join(bits)
+        for other, paths in mentions.items():
+            verb = "needs" if len(paths) == 1 else "need"
+            text += f"\n{self.name(other)} also has {join_names(paths)}, which {verb} {self.name(other)}'s OK."
+        self.tell(text)
+        return found
 
     def fetch_from(self, owner: str, part: str, look_for=()) -> dict:
         r = self.net.send(self.id, owner, "fetch", {"part": part})
@@ -430,6 +537,11 @@ class PersonalAgent:
                      f"so {who} will see both and pick one." if r.get("collides_with") else "")
             self.tell(f"Sent your change to {who}'s agent ({path}, +{r['added']} -{r['removed']}). "
                       f"Nothing changes until {who} approves.{when}{clash}")
+        elif status == "auto":
+            path = r.get("path", path)
+            self.requested.add((owner, path))
+            self.tell(f"{who} lets your small changes to {path.rsplit('/', 1)[0]}/ through without asking, so it's "
+                      f"saved already (+{r['added']} -{r['removed']}). {who} still gets the commit and can undo it.")
         elif status == "no_change":
             self.tell(f"{who}'s {path} already does that.")
         else:
@@ -503,7 +615,7 @@ class PersonalAgent:
         warn = f" Warning: {'; '.join(prop.flags)}." if prop.flags else ""
         prompt = (f"{who} wants to change your {prop.path}{again} (+{prop.added} -{prop.removed}): "
                   f"\"{prop.intent}\".{warn} Approve?")
-        self.ask(f"{self.id}_fix", prompt, [("approve", "Approve"), ("decline", "Decline")],
+        self.ask(self._key("fix"), prompt, [("approve", "Approve"), ("decline", "Decline")],
                  lambda choice: self._decide_one(prop, choice), order=1,
                  diffs={prop.requester: diffs.unified(prop.old, prop.new, prop.path)}, flags=prop.flags)
 
@@ -512,7 +624,7 @@ class PersonalAgent:
         lines = " ".join(f"{self.name(p.requester)}'s: \"{p.intent}\" (+{p.added} -{p.removed})." for p in group)
         prompt = f"{len(group)} changes to your {path} touch the same lines. {lines} Which one?"
         options = [(p.requester, f"{self.name(p.requester)}'s change") for p in group] + [("neither", "Neither")]
-        self.ask(f"{self.id}_fix", prompt, options, lambda choice: self._decide_pick(group, choice), order=1,
+        self.ask(self._key("fix"), prompt, options, lambda choice: self._decide_pick(group, choice), order=1,
                  diffs={p.requester: diffs.unified(p.old, p.new, p.path) for p in group},
                  flags=sorted({f for p in group for f in p.flags}))
 
@@ -536,29 +648,84 @@ class PersonalAgent:
                               {"status": "not_picked", "path": p.path,
                                "picked": self.name(chosen.requester) if chosen else None})
 
-    def _apply(self, prop: Proposal) -> None:
+    def _apply(self, prop: Proposal, asked: bool = True) -> dict | None:
         if self.ws.hash(prop.path) != prop.base:
             self._redraft(prop)
             if prop.status == "pending":
                 self.net.after(lambda: self._review_changes(prop.path))
-            return
+            return None
         self.ws.write(prop.path, prop.new)
         prop.status = "applied"
-        commit = self._publish(prop.path, prop.old, prop.new, prop.intent, requested_by=[prop.requester])
-        sent = [self.name(p) for p in commit["to"]]
-        self.tell(f"Saved {self.name(prop.requester)}'s change to {prop.path}. "
-                  f"Sent it to {join_names(sent) or 'nobody else'}, the people it affects.")
+        commit = self._publish(prop.path, prop.old, prop.new, prop.intent, requested_by=[prop.requester],
+                               by_rule=not asked)
+        if asked:
+            sent = [self.name(p) for p in commit["to"]]
+            self.tell(f"Saved {self.name(prop.requester)}'s change to {prop.path}. "
+                      f"Sent it to {join_names(sent) or 'nobody else'}, the people it affects.")
+            self._offer_trust(prop)
         # Anything else still waiting on this file was written against the old version.
         for other in self._pending(prop.path):
             if other.id not in prop.rivals:
                 self._redraft(other)
+        return commit
 
-    def undo_last(self, path: str) -> bool:
+    # ----------------------------------------------------------- earned trust
+
+    SMALL = 5  # lines added plus removed
+
+    def _scope(self, path: str) -> str:
+        return path.rsplit("/", 1)[0] + "/*" if "/" in path else path
+
+    def _trusted(self, prop: Proposal) -> dict | None:
+        if prop.flags or prop.added + prop.removed > self.SMALL:
+            return None
+        return next((rule for rule in self.trust
+                     if rule["requester"] == prop.requester and fnmatchcase(prop.path, rule["glob"])), None)
+
+    def _offer_trust(self, prop: Proposal) -> None:
+        """After my person approves a small, clean change, offer to let that teammate's small changes through."""
+        if prop.flags or prop.added + prop.removed > self.SMALL or self._trusted(prop):
+            return
+        who, glob = self.name(prop.requester), self._scope(prop.path)
+        folder = glob[:-1]
+
+        def answer(choice):
+            if choice == "yes":
+                self.trust.append({"requester": prop.requester, "glob": glob, "since": clock.fmt(self.net.t)})
+
+        self.ask(self._key("trust"),
+                 f"That was a small, clean change. Let {who}'s small changes to {folder} ({self.SMALL} lines or fewer, "
+                 f"nothing flagged) go through without asking you? You'd still get every commit, and undo is one tap.",
+                 [("yes", f"Yes, small ones from {who}"), ("no", "Keep asking me")], answer, order=2)
+
+    def _apply_by_rule(self, prop: Proposal, rule: dict) -> None:
+        commit = self._apply(prop, asked=False)
+        if not commit:
+            return
+        who = self.name(prop.requester)
+        text = (f"Saved {who}'s change to {prop.path} without asking (+{prop.added} -{prop.removed}): "
+                f"\"{prop.intent}\", under the rule you set at {rule['since']}. Keep it?")
+        self._receipt(f"saved {who}'s small change to {prop.path} under your rule")
+
+        def answer(choice):
+            if choice == "undo":
+                self.undo_last(prop.path, undoing=prop)
+
+        self.ask(self._key("undo"), text, [("keep", "Keep it"), ("undo", "Undo it")], answer, order=3,
+                 diffs={prop.requester: diffs.unified(prop.old, prop.new, prop.path)})
+
+    def undo_last(self, path: str, undoing: Proposal | None = None) -> bool:
+        """Put the file back the way it was. The undo goes out as a commit to the same kind of audience."""
         before = self.ws.read(path) if self.ws.exists(path) else ""
         if not self.ws.undo(path):
             return False
         after = self.ws.read(path) if self.ws.exists(path) else ""
-        self._publish(path, before, after, f"Undo the last change to {path}")
+        if undoing:
+            undoing.status = "undone"
+            message = f"Undo {self.name(undoing.requester)}'s change: {undoing.intent}"
+        else:
+            message = f"Undo the last change to {path}"
+        self._publish(path, before, after, message, undo_of=undoing.requester if undoing else None)
         return True
 
     def _redraft(self, prop: Proposal) -> None:
@@ -582,6 +749,8 @@ class PersonalAgent:
         """Why my person would need to see a change to someone else's file, or None."""
         if (owner, path) in self.copies:
             return "you have a copy"
+        if (owner, path) in self.quotes:
+            return "it was quoted to you earlier"
         if (owner, path) in self.requested:
             return "you asked for a change to it"
         for watch in self.person.get("watches", ()):
@@ -594,12 +763,15 @@ class PersonalAgent:
             return "you own this part"
         return None
 
-    def _publish(self, path: str, old: str, new: str, message: str, requested_by=()) -> dict:
+    def _publish(self, path: str, old: str, new: str, message: str, requested_by=(), by_rule: bool = False,
+                 undo_of: str | None = None) -> dict:
         added, removed = diffs.stats(old, new)
         part = part_for_path(path, self.parts)
         commit = {"owner": self.id, "path": path, "part": part, "message": message,
-                  "requested_by": list(requested_by), "at": clock.fmt(self.net.t),
+                  "requested_by": list(requested_by), "at": clock.fmt(self.net.t), "by_rule": by_rule,
                   "added": added, "removed": removed, "diff": diffs.unified(old, new, path)}
+        if undo_of:
+            commit["undo_of"] = undo_of
         if looks_secret(commit["diff"]):
             commit["diff"] = None
             commit["held_back"] = "The diff isn't included because it contains something that looks like a key."
@@ -615,8 +787,12 @@ class PersonalAgent:
         r = self.net.send(self.id, owner, "share_request", {"path": path})
         for f in r.get("shared", []):
             self.copies[(owner, f["path"])] = f["text"]
-            self.tell(f"Your copy of {self.name(owner)}'s {path} is up to date again.",
-                      short=f"your copy of {self.name(owner)}'s {path} was updated")
+            self.quotes.pop((owner, f["path"]), None)
+            self.tell(f"I pulled the new version of {self.name(owner)}'s {path} for you.",
+                      short=f"pulled the new version of {self.name(owner)}'s {path}")
+
+    def _part_name(self, part_id: str) -> str:
+        return next((p["name"] for p in self.parts if p["id"] == part_id), part_id)
 
     # ---------------------------------------------------------------- time
 
@@ -649,7 +825,7 @@ class PersonalAgent:
                     body = {"declined": True}
                 self.net.send(self.id, a["from"], "slot", body)
 
-        self.ask(f"{self.id}_slot", prompt, options, answer, order=7)
+        self.ask(self._key("slot"), prompt, options, answer, order=7)
 
     # ------------------------------------------------------------- helpers
 

@@ -57,6 +57,17 @@ class Gate:
                 return self._stop(kind, recipient, "private file")
             if tier == ASK and (path, recipient) not in self.approved:
                 return self._stop(kind, recipient, "needs the owner's OK first")
+        for item in body.get("answers", []) or []:
+            path = item.get("path", "")
+            if not self.ws.exists(path):
+                return self._stop(kind, recipient, "not this person's file")
+            if not item.get("text") or item["text"] not in self.ws.read(path):
+                return self._stop(kind, recipient, "quote isn't in the file")
+            tier = self.policy.tier(path)
+            if tier == NEVER:
+                return self._stop(kind, recipient, "private file")
+            if tier == ASK and (path, recipient) not in self.approved:
+                return self._stop(kind, recipient, "needs the owner's OK first")
         for item in body.get("mentions", []) or []:
             if self.policy.tier(item.get("path", "")) == NEVER:
                 return self._stop(kind, recipient, "private file")

@@ -22,7 +22,13 @@ class MainStoryTests(unittest.TestCase):
 
     def test_only_shareable_files_crossed(self):
         crossed = {(f["owner"], f["path"]) for f in self.summary["files_crossed"]}
-        self.assertEqual(crossed, {("omar", "docs/payments-api.md"), ("omar", "drafts/charge-fix-wip.py")})
+        self.assertEqual(crossed, {
+            ("omar", "docs/payments-api.md"),      # shareable notes, quoted and then fetched
+            ("omar", "drafts/charge-fix-wip.py"),  # a draft, sent only after Omar said yes at 7:00
+            ("nina", "notes/checkout-bug.md"),     # Nina's notes, pulled by Ade when he became checkout backup
+            ("nina", "web/checkout.tsx"),
+            ("priya", "notes/auth.md"),            # Priya's notes, pulled by Lucas as the login backup
+        })
         never = {(f["person"], f["path"]) for f in self.summary["never_left"]}
         self.assertIn(("omar", ".env"), never)
         self.assertIn(("omar", "personal/journal.md"), never)

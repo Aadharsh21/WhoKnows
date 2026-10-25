@@ -63,9 +63,12 @@ def _main(net: Network) -> None:
                 "The other seven just say no.")
 
     net.advance_to(at("01:08"))
-    net.caption("Omar is asleep, so his agent follows his rules: notes go out, drafts wait for him, "
-                "and secrets never leave.")
-    nina.fetch_from("omar", "payments", look_for=("idempotency",))
+    net.typed("nina", "why would a retry get a 409?")
+    net.caption("Nina asks the two who know. Omar is asleep, so his agent answers for him, quoting his shareable "
+                "notes word for word. His drafts wait for his yes, and his secrets never come up.")
+    nina.ask_question("why would a retry get a 409?")
+    net.caption("Put together, the two answers point at the bug: Theo's new retry sends the charge again "
+                "without the same Idempotency-Key.")
     nina.request_file("omar", "drafts/charge-fix-wip.py")
 
     net.advance_to(at("01:09"))
@@ -77,7 +80,8 @@ def _main(net: Network) -> None:
         theo.person["busy"] = True
 
     net.advance_to(at("01:30"))
-    net.caption("Every half hour the agents compare who's doing what. They share part names and nothing else.")
+    net.caption("Every half hour the agents compare who's doing what, sharing part names and nothing else. "
+                "They also count who knows each part the demo needs, so no part depends on a single person.")
     net.team_check()
 
     net.advance_to(at("01:35"))
@@ -104,7 +108,8 @@ def _main(net: Network) -> None:
     net.typed("sofia", "need omar for 5 min to rehearse his part")
     sofia.request_time("omar", 5, "09:00", "rehearse the payments part of the demo")
 
-    net.caption("7:00 AM. Omar wakes up to three short questions instead of a flood of messages.")
+    net.caption("7:00 AM. Omar wakes up to a receipt of what his agent did for him overnight, then a few short "
+                "questions instead of a flood of messages.")
     net.advance_to(at("07:00"))
     fix = net.used.get("omar_fix")
 
@@ -113,8 +118,8 @@ def _main(net: Network) -> None:
         net.typed("omar", "updated my payments notes")
         omar.edit_own("docs/payments-api.md", "notes_idempotency" if fix == "nina" else "notes_no_retry",
                       "Note the demo day fix in the payments notes")
-        net.caption("Omar edits his own notes. Nina has a copy from last night, so her agent gets the change "
-                    "and refreshes her copy. Nobody else is bothered.")
+        net.caption("Omar edits his own notes. They were quoted to Nina last night, so her agent gets the change "
+                    "and pulls the new version. Nobody else is bothered.")
         net.advance_to(at("07:20"))
         net.typed("ade", "reran the checkout test against the new charge.py. it passes.")
         ade.report("checkout", "fixed", "The checkout test passes with the new charge.py.")
@@ -123,7 +128,18 @@ def _main(net: Network) -> None:
         net.advance_to(at("07:20"))
         ade.report("checkout", "still failing", "Omar is looking at it.")
 
-    net.caption("Nina and Theo wake up to one summary each instead of a night of pings.")
+    net.caption("Nina wakes up to one summary instead of a night of pings.")
+    net.advance_to(at("07:50"))
+    if fix == "nina":
+        net.typed("nina", "ask omar's agent to add a docstring to create_charge")
+        if net.used.get("omar_trust") == "yes":
+            net.caption("A one-line change from Nina. Omar said her small changes can go through, so this one "
+                        "saves right away. Omar still gets it, with undo one tap away.")
+        else:
+            net.caption("A one-line change from Nina. Omar said to keep asking him, so it waits for his tap.")
+        nina.request_change("omar", "payments/charge.py", "docstring", "Add a one-line docstring to create_charge")
+
+    net.caption("Theo wakes up to one summary too.")
     net.advance_to(at("08:20"))
     net.advance_to(at("08:59"))
     owned = sum(1 for p in net.board_snapshot() if p["owners"])

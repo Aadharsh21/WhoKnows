@@ -8,6 +8,8 @@ and every decision a person made. The site and the video replay that trace.
 
 from __future__ import annotations
 
+from fnmatch import fnmatchcase
+
 from . import clock
 from .agent import join_names
 
@@ -188,15 +190,22 @@ class Network:
     # ------------------------------------------------------------- board
 
     def board_snapshot(self) -> list[dict]:
+        needs = set(self.team.get("project", {}).get("needs", ()))
         return [{"id": p["id"], "name": p["name"], "owners": list(self.board[p["id"]]["owners"]),
-                 "note": self.board[p["id"]]["note"], "due": p.get("due")} for p in self.parts]
+                 "note": self.board[p["id"]]["note"], "due": p.get("due"), "critical": p["id"] in needs,
+                 "knowers": list(self.board[p["id"]].get("knowers", [])),
+                 "backup": list(self.board[p["id"]].get("backup", []))} for p in self.parts]
 
     def team_check(self) -> None:
-        """Every agent posts which parts its person owns or has claimed. Duplicates and gaps get sorted out."""
+        """Every agent posts which parts its person owns, has claimed, or knows. Then the agents sort out
+        duplicates, parts nobody owns, and parts the deadline depends on that only one person knows."""
         claims: dict[str, list[str]] = {}
+        knows: dict[str, list[str]] = {}
         for aid in self.order:
-            mine = self.agents[aid].card.public_claims()
-            body = {"claims": [{"part": p, "level": level} for p, level in mine]}
+            card = self.agents[aid].card
+            mine = card.public_claims()
+            known = card.known_parts()
+            body = {"claims": [{"part": p, "level": level} for p, level in mine], "knows": known}
             ok, why = self.agents[aid].gate.check("claims", body, "board")
             if not ok:
                 self.record("blocked", sender=aid, to="board", kind="claims", label="claims", reason=why)
@@ -205,8 +214,11 @@ class Network:
                         label=", ".join(p for p, _ in mine) or "nothing", files=[])
             for p, _ in mine:
                 claims.setdefault(p, []).append(aid)
+            for p in known:
+                knows.setdefault(p, []).append(aid)
         for p in self.parts:
             self.board[p["id"]]["owners"] = list(claims.get(p["id"], []))
+            self.board[p["id"]]["knowers"] = list(knows.get(p["id"], []))
         dups = [p for p in self.parts if len(claims.get(p["id"], [])) > 1]
         gaps = [p for p in self.parts if not claims.get(p["id"])]
         self.record("board", parts=self.board_snapshot(), duplicates=[p["id"] for p in dups],
@@ -215,6 +227,70 @@ class Network:
             self._split(p, claims[p["id"]])
         for p in gaps:
             self._find_owner(p, self._candidates(p))
+        self._radar(knows)
+
+    # --------------------------------------------------------- bus factor
+
+    def _radar(self, knows: dict) -> None:
+        """For each part the deadline depends on, count who knows it. One person is a single point of
+        failure: line up a backup who's awake, or flag it for that person's morning."""
+        needs = self.team.get("project", {}).get("needs", ())
+        risky = []
+        for pid in needs:
+            people = knows.get(pid, [])
+            if len(people) == 1:
+                risky.append((next(p for p in self.parts if p["id"] == pid), people[0]))
+        if not risky:
+            return
+        self.record("board", parts=self.board_snapshot(),
+                    single=[{"part": part["id"], "knower": knower} for part, knower in risky])
+        for part, knower in risky:
+            backup = self._backup_for(part, knower)
+            if backup:
+                self._ask_backup(part, knower, backup)
+            else:
+                self._only_one(part, knower)
+
+    def _only_one(self, part: dict, knower: str) -> None:
+        """No backup tonight: put it on the board and let the one person who knows the part hear about it."""
+        self.board[part["id"]]["note"] = f"only {self.name(knower)} knows it"
+        self.agents[knower].tell(
+            f"The demo depends on the {part['name']} and you're the only one who knows it. Your shareable "
+            f"notes on it are there if anyone needs them, but think about briefing someone before 9.",
+            short=f"you're the only one who knows the {part['name']}, and the demo depends on it")
+        self.record("board", parts=self.board_snapshot())
+
+    def _backup_for(self, part: dict, knower: str):
+        def relevance(aid):
+            person = self.agents[aid].person
+            return sum(2 for w in person.get("watches", ()) for path in part.get("paths", ())
+                       if fnmatchcase(path, w["glob"]) or fnmatchcase(w["glob"].rstrip("*"), path + "*"))
+
+        def load(aid):
+            return sum(1 for b in self.board.values() if aid in b["owners"] or aid in b.get("backup", []))
+
+        pool = [a for a in self.order if a != knower and self.agents[a].awake() and not self.agents[a].person.get("busy")]
+        if not pool:
+            return None
+        return sorted(pool, key=lambda a: (-relevance(a), load(a), self.order.index(a)))[0]
+
+    def _ask_backup(self, part: dict, knower: str, backup: str) -> None:
+        agent = self.agents[backup]
+        self.record("msg", sender="board", to=backup, kind="backup", label=f"backup for {part['name']}?", files=[])
+
+        def answer(choice):
+            if choice != "yes":
+                self._only_one(part, knower)
+                return
+            self.board[part["id"]].setdefault("backup", []).append(backup)
+            self.board[part["id"]]["note"] = f"{agent.first} is backup"
+            agent.fetch_from(knower, part["id"])
+            self.record("board", parts=self.board_snapshot())
+
+        agent.ask(f"{backup}_backup_{part['id']}",
+                  f"Only {self.name(knower)} knows the {part['name']}, and the demo depends on it. Be the backup? "
+                  f"Your agent will pull {self.name(knower)}'s shareable notes on it now.",
+                  [("yes", "I'll be backup"), ("no", "Not tonight")], answer)
 
     def board_update(self, by: str, part_id: str, status: str, detail: str = "") -> None:
         part = next(p for p in self.parts if p["id"] == part_id)

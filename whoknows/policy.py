@@ -11,7 +11,7 @@ always "never", whatever a person's own rules say.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 
 AUTO, ASK, NEVER = "auto", "ask", "never"
@@ -30,11 +30,13 @@ def normalize(path: str) -> str:
     return path
 
 
-@dataclass(frozen=True)
+@dataclass
 class Policy:
     auto: tuple = ()
     ask: tuple = ()
     never: tuple = ()
+    # Files the person asked to approve from now on, even though their rules say "auto".
+    ask_first: set = field(default_factory=set)
 
     @classmethod
     def from_dict(cls, rules: dict | None) -> "Policy":
@@ -47,6 +49,8 @@ class Policy:
             return NEVER
         if any(fnmatchcase(path, rule) for rule in self.never):
             return NEVER
+        if path in self.ask_first:
+            return ASK
         if any(fnmatchcase(path, rule) for rule in self.auto):
             return AUTO
         return ASK

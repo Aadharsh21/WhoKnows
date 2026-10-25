@@ -26,6 +26,7 @@ PROJECT = {
     "about": "a campus marketplace for used textbooks",
     "demo": "09:00",
     "day": "Thursday, December 3",
+    "needs": ["checkout", "payments", "auth"],  # what the live demo can't work without
 }
 
 PEOPLE = [
@@ -151,7 +152,7 @@ WORKSPACES = {
         "personal/journal.md": "Demo day. Do not oversleep.\nBuy Nina a coffee for fixing my CSS last week.\n",
     },
     "theo": {
-        "notes/retry-change.md": ("Retry change, yesterday at 4:12 PM\n"
+        "notes/retry-change.md": ("# Retry change (Wednesday)\n"
                                   "Failed charges now retry up to 3 times with backoff (payments/retry.py).\n"
                                   "charge.py wraps the gateway call in with_retry.\n"),
         "payments/retry.py": RETRY,
@@ -230,9 +231,18 @@ def _notes_no_retry(text):
     return text.replace(NOTES_ANCHOR, NOTES_ANCHOR + "Demo day: retries are off for now. Each charge is tried once.\n")
 
 
+def _docstring(text):
+    head = "def create_charge(order_id, amount_cents, card_token):\n"
+    doc = '    """Charge one order through the payment gateway."""\n'
+    if head not in text or doc in text:
+        return None
+    return text.replace(head, head + doc)
+
+
 RECIPES = {
     "idempotency_key": _idempotency_key,
     "drop_retry": _drop_retry,
+    "docstring": _docstring,
     "notes_idempotency": _notes_idempotency,
     "notes_no_retry": _notes_no_retry,
     "empty_file": lambda text: "",

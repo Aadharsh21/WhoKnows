@@ -38,6 +38,10 @@ class Card:
             return None
         return max(pool, key=lambda c: (RANK[c.level], c.when))
 
+    def known_parts(self) -> list[str]:
+        """Parts this person knows: ones they own or have changed recently. Part names only."""
+        return sorted({c.part for c in self.claims if c.level in ("owner", "touched")})
+
     def public_claims(self) -> list[tuple[str, str]]:
         """What goes on the team board: part ids this person owns or has claimed. Nothing else."""
         best: dict[str, str] = {}
