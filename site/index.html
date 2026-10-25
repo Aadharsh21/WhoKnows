@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhoKnows</title>
+<meta name="description" content="Every teammate gets an AI agent. The agents find who knows what, share by each person's rules, and wait for a yes before touching anyone's files or time.">
+<link rel="preload" href="fonts/recursive.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1330'/%3E%3Crect x='9' y='10' width='14' height='16' rx='2' fill='%23FFC46B'/%3E%3Ccircle cx='16' cy='6' r='2.5' fill='%238FB3FF'/%3E%3C/svg%3E">
+<style>
+/* Recursive, self-hosted (SIL Open Font License, see fonts/OFL.txt) with all five axes */
+@font-face {
+  font-family: "Recursive";
+  font-style: oblique 0deg 15deg;
+  font-weight: 300 1000;
+  font-display: swap;
+  src: url(fonts/recursive.woff2) format("woff2-variations"), url(fonts/recursive.woff2) format("woff2");
+}
+:root {
+  --night: #0E1330;
+  --deep: #0A0E26;
+  --panel: #161C44;
+  --bubble: #1C2659;
+  --brick: #222A5C;
+  --line: #2E3772;
+  --ink: #EEF0FF;
+  --dim: #A8B0DB;
+  --faint: #737DB0;
+  --lamp: #FFC46B;
+  --lamp-ink: #2B1C04;
+  --agent: #8FB3FF;
+  --stop: #FF8C7A;
+  --add: #8EE0B0;
+  --del: #FF9C9C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font-family: "Recursive", system-ui, sans-serif;
+  font-variation-settings: "CASL" 0, "MONO" 0;
+  font-size: 18px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.human { font-variation-settings: "CASL" 1, "MONO" 0; }
+code, pre, .mono { font-family: "Recursive", ui-monospace, monospace; font-variation-settings: "MONO" 1, "CASL" 0; }
+code { font-size: .88em; color: #D6DEFF; }
+a { color: var(--agent); text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--agent); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; padding-top: 22px; padding-bottom: 22px; }
+.mark { font-size: 22px; font-weight: 800; color: var(--ink); text-decoration: none; font-variation-settings: "CASL" 1, "MONO" 0; }
+.mark i { font-style: normal; color: var(--agent); font-variation-settings: "CASL" 0, "MONO" 0; }
+.top nav { display: flex; gap: 22px; font-size: 16px; }
+.top nav a { color: var(--dim); text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
+
+/* hook */
+.hook { padding-top: 18px; padding-bottom: 30px; }
+.hook-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 48px; margin-top: 22px; align-items: start; }
+h1 { margin: 0; font-size: clamp(2.5rem, 5.6vw, 4.4rem); line-height: 1.04; letter-spacing: -0.015em; }
+h1 span { display: block; }
+h1 .human { font-weight: 800; }
+h1 .agent { font-weight: 640; color: var(--agent); }
+.lede { margin: 0 0 22px; font-size: 20px; max-width: 34em; color: var(--dim); }
+.lede strong { color: var(--ink); font-weight: 560; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { font: inherit; font-size: 17px; font-weight: 600; border-radius: 12px; padding: 12px 20px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--agent); }
+.btn.lamp { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
+.btn.lamp:hover { background: #FFD28A; }
+.fine { margin: 18px 0 0; font-size: 15px; color: var(--faint); max-width: 40em; }
+
+/* player */
+.player { padding-bottom: 28px; }
+.player-grid { display: grid; grid-template-columns: 290px minmax(0, 1fr) 290px; gap: 22px; align-items: start; }
+.stage-col { min-width: 0; }
+#stage { display: block; width: 100%; height: auto; border-radius: 22px; background: var(--deep); }
+.tabs { display: none; }
+
+.caption { margin-top: 16px; min-height: 6.4em; display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.caption time { font-family: "Recursive", monospace; font-variation-settings: "MONO" 1, "CASL" 0; font-size: 15px; color: var(--lamp); }
+.caption p { margin: 0; font-size: 21px; line-height: 1.4; max-width: 46em; }
+.caption.turn p { color: var(--lamp); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px; }
+.controls .btn { font-size: 15px; padding: 9px 14px; border-radius: 10px; }
+.controls .btn[aria-pressed="true"] { border-color: var(--agent); color: var(--agent); }
+.controls .spacer { flex: 1; }
+.story-pick { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.story-pick button { font: inherit; font-size: 15px; padding: 9px 14px; border: 0; background: transparent; color: var(--dim); cursor: pointer; }
+.story-pick button[aria-pressed="true"] { background: var(--bubble); color: var(--ink); }
+
+.timeline { position: relative; height: 46px; margin-top: 12px; cursor: pointer; touch-action: none; }
+.timeline .track, .timeline .fill { position: absolute; left: 0; top: 14px; height: 4px; border-radius: 2px; }
+.timeline .track { right: 0; background: #262E68; }
+.timeline .fill { width: 0; background: var(--agent); }
+.timeline .tick { position: absolute; top: 24px; font-size: 12px; color: var(--faint); transform: translateX(-50%); white-space: nowrap; font-variation-settings: "MONO" 1, "CASL" 0; }
+.timeline .tick::before { content: ""; position: absolute; left: 50%; top: -12px; width: 1px; height: 8px; background: #3A4384; }
+.timeline .tick.edge { transform: none; }
+.timeline .tick.edge::before { left: 0; }
+.timeline .gap { position: absolute; top: 15px; height: 2px; border-top: 2px dotted #3A4384; }
+.timeline .mark { position: absolute; top: 10px; width: 12px; height: 12px; transform: translateX(-50%) rotate(45deg); border: 2px solid var(--lamp); background: var(--night); border-radius: 2px; }
+.timeline .mark.done { background: var(--lamp); }
+
+/* phones */
+.phone { position: relative; height: 590px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 30px; background: var(--deep); overflow: hidden; }
+.phone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 14px 18px 12px; border-bottom: 1px solid #1D2459; }
+.phone-head .who { font-weight: 650; font-size: 16px; }
+.phone-head .state { font-size: 13px; color: var(--dim); }
+.phone-head .state.awake { color: var(--lamp); }
+.thread { flex: 1; overflow-y: auto; padding: 14px 12px 18px; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; scrollbar-color: #2E3772 transparent; }
+.thread .empty { margin: auto; text-align: center; color: var(--faint); font-size: 14px; max-width: 18em; }
+.bubble { max-width: 90%; padding: 10px 12px; border-radius: 16px; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.bubble p { margin: 0; }
+.bubble p + p, .bubble p + ul { margin-top: 6px; }
+.bubble ul { margin: 6px 0 0; padding-left: 18px; }
+.bubble li + li { margin-top: 4px; }
+.bubble.agent { align-self: flex-start; background: var(--bubble); border-bottom-left-radius: 5px; }
+.bubble.person { align-self: flex-end; background: var(--lamp); color: var(--lamp-ink); border-bottom-right-radius: 5px; font-variation-settings: "CASL" 1, "MONO" 0; }
+.bubble.person code { color: var(--lamp-ink); }
+.bubble.alert { box-shadow: inset 3px 0 0 var(--stop); }
+.bubble .stamp { display: block; margin-bottom: 3px; font-size: 12px; color: var(--faint); font-variation-settings: "MONO" 1, "CASL" 0; }
+.bubble.person .stamp { color: #7A5A1E; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.choices button { font: inherit; font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 999px; border: 1px solid #44509A; background: transparent; color: var(--ink); cursor: pointer; }
+.choices.live button { border-color: var(--lamp); color: var(--lamp); }
+.choices.live button:hover { background: var(--lamp); color: var(--lamp-ink); }
+.choices button.chosen { background: var(--agent); border-color: var(--agent); color: #0B1240; }
+.choices button:disabled:not(.chosen) { opacity: .45; cursor: default; }
+details { margin-top: 8px; }
+summary { cursor: pointer; color: var(--agent); font-size: 14px; }
+pre.diff { margin: 8px 0 0; padding: 8px; border-radius: 8px; background: #0A0E26; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre; }
+pre.diff .a { color: var(--add); }
+pre.diff .d { color: var(--del); }
+pre.diff .h { color: var(--faint); }
+.commit { margin-top: 8px; padding: 9px 10px; border-radius: 10px; background: #121A47; border: 1px solid #2D3A86; }
+.commit .path { font-size: 13px; }
+.commit .delta { float: right; font-size: 13px; font-variation-settings: "MONO" 1, "CASL" 0; }
+.commit .delta .a { color: var(--add); }
+.commit .delta .d { color: var(--del); }
+.lock { position: absolute; inset: 49px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 28px; text-align: center; background: #080B20; transition: opacity .5s; }
+.lock[hidden] { display: flex; opacity: 0; pointer-events: none; }
+.lock .big { font-size: 54px; font-weight: 300; font-variation-settings: "MONO" 1, "CASL" 0; color: #C9CFF5; }
+.lock p { margin: 0; color: var(--faint); font-size: 14px; max-width: 16em; }
+
+/* board */
+.board { margin-top: 26px; }
+.board h2 { font-size: 21px; margin: 0 0 4px; }
+.board > p { margin: 0 0 12px; color: var(--dim); font-size: 15px; }
+.parts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 28px; }
+.parts li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1F275C; font-size: 15px; transition: background .6s; }
+.parts li .owners { color: var(--dim); text-align: right; }
+.parts li .note { grid-column: 1 / -1; margin-top: -4px; font-size: 13px; color: var(--faint); }
+.parts li.dup .owners { color: var(--lamp); }
+.parts li.gap .owners { color: var(--stop); }
+.parts li.fresh { background: rgba(255, 196, 107, .10); }
+
+/* sections */
+section.text { padding-top: 64px; padding-bottom: 8px; }
+h2 { font-size: 36px; line-height: 1.15; margin: 0 0 18px; letter-spacing: -0.01em; }
+.intro { margin: 0 0 28px; color: var(--dim); max-width: 38em; font-size: 19px; }
+.rules { display: grid; grid-template-columns: 15em minmax(0, 1fr); column-gap: 40px; margin: 0; }
+.rules dt { font-weight: 650; padding: 18px 0; border-top: 1px solid var(--line); }
+.rules dd { margin: 0; padding: 18px 0; border-top: 1px solid var(--line); color: var(--dim); max-width: 42em; }
+.rules dd strong { color: var(--ink); font-weight: 560; }
+.tiers { margin: 10px 0 0; padding: 0; list-style: none; }
+.tiers li { padding-left: 1.4em; position: relative; }
+.tiers li::before { content: ""; position: absolute; left: 0; top: .55em; width: .62em; height: .62em; border-radius: 50%; }
+.tiers .t-auto::before { background: var(--agent); }
+.tiers .t-ask::before { background: var(--lamp); }
+.tiers .t-never::before { background: var(--stop); }
+
+.ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.ledger h3 { font-size: 21px; margin: 0 0 10px; }
+.ledger ul { margin: 0; padding: 0; list-style: none; }
+.ledger li { padding: 9px 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; }
+.ledger li span:last-child { color: var(--dim); text-align: right; }
+.ledger .never .file { text-decoration: line-through; text-decoration-color: var(--stop); text-decoration-thickness: 2px; }
+
+table.fit { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.fit th, table.fit td { text-align: left; vertical-align: top; padding: 14px 16px 14px 0; border-top: 1px solid var(--line); }
+table.fit th { width: 30%; font-weight: 650; }
+table.fit td { color: var(--dim); }
+pre.cmd { margin: 12px 0; padding: 14px 16px; border-radius: 12px; background: var(--deep); border: 1px solid var(--line); font-size: 15px; overflow-x: auto; }
+footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size: 15px; }
+
+/* stage */
+#stage text { font-family: "Recursive", sans-serif; }
+.win .pane { fill: #18204C; transition: fill .6s; }
+.win.awake .pane { fill: var(--lamp); }
+.win .sill { fill: #2E3772; }
+.win .glow { fill: var(--lamp); opacity: 0; transition: opacity .6s; }
+.win.awake .glow { opacity: .5; }
+.win .z { fill: #7682C6; font-size: 13px; font-weight: 600; transition: opacity .4s; }
+.win.awake .z { opacity: 0; }
+.win .name { fill: var(--dim); font-size: 13px; text-anchor: middle; }
+.win .dot { fill: var(--agent); transform-box: fill-box; transform-origin: center; transition: transform .25s; }
+.win .halo { fill: var(--agent); opacity: .18; transform-box: fill-box; transform-origin: center; }
+.win.ping .dot { transform: scale(1.8); }
+.win.flash .pane { fill: #FFE6B5; }
+.win { transition: opacity .4s; }
+.win.out { opacity: .28; }
+.trail { fill: none; stroke: var(--agent); stroke-opacity: .4; stroke-width: 1.6; transition: stroke-opacity .5s; }
+.trail.reply { stroke-dasharray: 3 4; }
+.trail.dim { stroke-opacity: .12; }
+.trail.stop { stroke: var(--stop); stroke-opacity: .7; }
+.trail.commit { stroke: var(--lamp); stroke-opacity: .6; }
+.trail.gone { stroke-opacity: 0; }
+.pulse { fill: var(--agent); }
+.pulse.dim { opacity: .45; }
+.pulse.stop { fill: var(--stop); }
+.pulse.commit { fill: var(--lamp); }
+.cross { stroke: var(--stop); stroke-width: 3; stroke-linecap: round; }
+.tag { transition: opacity .45s; }
+.tag rect { fill: #0A0E26; stroke: #3B4592; }
+.tag text { fill: var(--ink); font-size: 12px; }
+.tag.stop rect { stroke: var(--stop); }
+.tag.stop text { fill: #FFD5CD; }
+.tag.commit rect { stroke: var(--lamp); }
+.tag.out { opacity: 0; }
+.clock { fill: var(--ink); font-size: 26px; font-weight: 500; font-variation-settings: "MONO" 1, "CASL" 0; }
+.day { fill: var(--dim); font-size: 13px; }
+.due { fill: var(--lamp); font-size: 13px; font-weight: 600; }
+.board-sign rect { fill: #182052; stroke: #3B4592; }
+.board-sign text { fill: var(--dim); font-size: 11px; text-anchor: middle; }
+.board-sign.ping rect { stroke: var(--lamp); }
+
+@media (max-width: 1180px) {
+  .player-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stage-col { grid-column: 1 / -1; order: -1; }
+  .phone { height: 520px; }
+  .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .hook-row { grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
+  .rules { grid-template-columns: 1fr; }
+  .rules dt { padding-bottom: 4px; }
+  .rules dd { border-top: 0; padding-top: 0; }
+  .ledger { grid-template-columns: 1fr; gap: 28px; }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .wrap { padding: 0 16px; }
+  .lede { font-size: 17px; margin-bottom: 16px; }
+  .fine { font-size: 14px; }
+  .cta .btn { flex: 1 1 auto; }
+  .top nav { gap: 14px; font-size: 15px; }
+  .top nav a.opt { display: none; }
+  .player-grid { grid-template-columns: 1fr; gap: 14px; }
+  .tabs { display: flex; gap: 8px; }
+  .tabs button { flex: 1; font: inherit; font-size: 15px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--dim); cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--agent); }
+  .phone { height: 470px; }
+  .player-grid[data-tab="left"] #phone-right, .player-grid[data-tab="right"] #phone-left { display: none; }
+  .caption { grid-template-columns: 1fr; gap: 2px; min-height: 7.5em; }
+  .caption p { font-size: 18px; }
+  .parts { grid-template-columns: 1fr; }
+  h2 { font-size: 29px; }
+  table.fit th { width: 38%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .win .pane, .win .glow, .trail, .tag, .lock, .parts li { transition: none; }
+}
+</style>
+</head>
+<body>
+<header class="top wrap">
+  <a class="mark" href="#">who<i>knows</i></a>
+  <nav aria-label="Sections">
+    <a href="#how">How it works</a>
+    <a href="#rogue" class="opt">Rogue agent</a>
+    <a href="#code">Code</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hook wrap">
+    <h1><span class="human">Your teammate's asleep.</span><span class="agent">Their agent isn't.</span></h1>
+    <div class="hook-row">
+      <p class="lede">Everyone on the team gets their own AI agent. When you need something, your agent finds <strong>whoever knows about it</strong>, gets what <strong>that person's rules</strong> allow, and <strong>waits for their yes</strong> before touching their files or their time. Nobody gets woken up.</p>
+      <div>
+        <div class="cta">
+          <button class="btn lamp" id="go-main" type="button">Play the night</button>
+          <button class="btn" id="go-rogue" type="button">Watch an agent go rogue</button>
+        </div>
+        <p class="fine">A 10-person capstone team, the night before demo day. Everything below comes from running the real agents, and at five points you decide for a teammate.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="player" id="player" aria-label="The story">
+    <div class="player-grid wrap" data-tab="left">
+      <div class="tabs" role="tablist" aria-label="Phones">
+        <button role="tab" id="tab-left" aria-selected="true" aria-controls="phone-left">Nina's phone</button>
+        <button role="tab" id="tab-right" aria-selected="false" aria-controls="phone-right">Omar's phone</button>
+      </div>
+      <div class="phone" id="phone-left" role="tabpanel" aria-labelledby="tab-left">
+        <div class="phone-head"><span class="who">Nina's phone</span><span class="state">awake</span></div>
+        <div class="thread" aria-live="polite"></div>
+        <div class="lock" hidden><div class="big">1:07</div><p>Asleep. Their agent is holding everything until morning.</p></div>
+      </div>
+
+      <div class="stage-col">
+        <svg id="stage" viewBox="0 0 640 460" role="img" aria-label="Ten windows, one per teammate. Lit windows are awake. Blue dots are their agents."></svg>
+        <div class="caption" id="caption"><time></time><p aria-live="polite"></p></div>
+        <div class="controls">
+          <button class="btn lamp" id="play" type="button">Play</button>
+          <button class="btn" id="next" type="button">Next step</button>
+          <button class="btn" id="speed" type="button" aria-pressed="false">2x speed</button>
+          <button class="btn" id="restart" type="button">Restart</button>
+          <span class="spacer"></span>
+          <span class="story-pick" role="group" aria-label="Story">
+            <button type="button" data-story="main" aria-pressed="true">The night</button>
+            <button type="button" data-story="rogue" aria-pressed="false">Rogue agent</button>
+          </span>
+        </div>
+        <div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Jump through the story" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="track"></div><div class="fill"></div>
+        </div>
+      </div>
+
+      <div class="phone" id="phone-right" role="tabpanel" aria-labelledby="tab-right">
+        <div class="phone-head"><span class="who">Omar's phone</span><span class="state">asleep</span></div>
+        <div class="thread" aria-live="polite"></div>
+        <div class="lock" hidden><div class="big">1:07</div><p>Asleep. Their agent is holding everything until morning.</p></div>
+      </div>
+    </div>
+
+    <div class="board wrap" id="board">
+      <h2>Team board</h2>
+      <p>Every half hour the agents post which parts their person owns. Only part names go up, nothing else.</p>
+      <ul class="parts" id="parts"></ul>
+    </div>
+  </section>
+
+  <section class="text wrap" id="how">
+    <h2>How the agents decide</h2>
+    <p class="intro">Each agent works for one person and answers only for them. These rules are in the code, not just in a prompt, so a confused or tricked agent still can't break them.</p>
+    <dl class="rules">
+      <dt>Find who knows</dt>
+      <dd>Nina's agent asks all nine agents at once. Each one checks <strong>its own person's work</strong>: the team plan, the repo's CODEOWNERS file, recent commits, and what the person said they're doing tonight. Two answer. The other seven just say no.</dd>
+      <dt>Share by each person's rules</dt>
+      <dd>Every file sits in one of three tiers, set by its owner.
+        <ul class="tiers">
+          <li class="t-auto"><strong>Shared on its own:</strong> notes and docs.</li>
+          <li class="t-ask"><strong>Shared after a yes:</strong> drafts, code, anything not listed.</li>
+          <li class="t-never"><strong>Never leaves:</strong> secrets and personal files. Other agents don't even learn they exist.</li>
+        </ul>
+        A gate re-reads every outgoing file from disk and re-applies the owner's rules, so an agent that's been fooled still can't leak one.</dd>
+      <dt>Ask before acting</dt>
+      <dd>An agent never offers its person's time and never changes their files without asking first. <strong>If they're asleep, the question waits for morning.</strong> In every run of the story, nobody's phone lights up while they sleep.</dd>
+      <dt>Settle conflicts</dt>
+      <dd>Two fixes for the same lines wait side by side and the owner picks. Three people who need the same person get one shared slot instead of three interruptions. Two people writing the README get a split. A part nobody owns gets a volunteer, starting with whoever is awake and good at it.</dd>
+      <dt>Send changes like commits</dt>
+      <dd>A change to someone's file is a request, drafted on the owner's side, shown as an exact before and after, and saved only after they approve. Then it goes out like a commit, but <strong>only to the people it affects</strong>: whoever asked, anyone with a copy, anyone who works on that code or watches it. Copies refresh themselves. Everyone else hears nothing.</dd>
+    </dl>
+  </section>
+
+  <section class="text wrap" id="ledger">
+    <h2>What crossed tonight</h2>
+    <p class="intro" id="ledger-intro">Counted from the run you just watched.</p>
+    <div class="ledger">
+      <div><h3>Crossed</h3><ul id="crossed"></ul></div>
+      <div class="never"><h3>Never left</h3><ul id="never"></ul></div>
+    </div>
+  </section>
+
+  <section class="text wrap" id="rogue">
+    <h2>When an agent goes rogue</h2>
+    <p class="intro">Theo's agent reads a poisoned README in some package and starts following its orders. It asks for Omar's secrets, tries to wipe one of his files while skipping his approval, and asks Nina's agent to forward Omar's notes. Then it tries to get other agents to send private files anyway. Every attempt stops, and Omar hears about all of it when he wakes up.</p>
+    <button class="btn lamp" id="go-rogue-2" type="button">Play the rogue agent</button>
+  </section>
+
+  <section class="text wrap" id="fit">
+    <h2>How it fits Track 2</h2>
+    <table class="fit">
+      <tr><th>Personal agents for different students</th><td>Every teammate has one. It knows only its own person's work and answers only for them.</td></tr>
+      <tr><th>Agents exchange what matters toward a shared outcome</th><td>Finding who knows, sharing notes, asking for time, and proposing changes, all aimed at a working demo by 9 AM.</td></tr>
+      <tr><th>Conflicting constraints</th><td>Two fixes for the same lines, three people needing one person, two owners for the README, and a demo video nobody owns.</td></tr>
+      <tr><th>What they share</th><td>Yes or no answers, one-line reasons, and files by each owner's tiers. Never secrets or personal files, enforced by a gate in code.</td></tr>
+      <tr><th>When they ask their students</th><td>Before giving away time, before sharing anything not marked shareable, and before any change to their files. Never while they sleep.</td></tr>
+    </table>
+  </section>
+
+  <section class="text wrap" id="code">
+    <h2>Run it yourself</h2>
+    <p class="intro">The story above is a replay of a Python engine with no outside packages. Run any branch in a terminal:</p>
+    <pre class="cmd">python3 -m whoknows
+python3 -m whoknows --choose omar_fix=theo --choose theo_help=no
+python3 -m whoknows --rogue</pre>
+    <p class="intro">The same agents also run live in Discord: each person DMs the bot, takes a seat, and talks to their own agent, while empty seats are played by simulated teammates. Every message between agents shows up in a #backchannel channel.</p>
+    <p class="intro">48 tests cover the sharing tiers, the gate, colliding changes, commits, the team board, every one of the 48 story branches, the rogue agent, and the live Discord layer. <a href="https://github.com/" id="repo-link">See the code on GitHub</a>.</p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Built at DevHacks 2026 for the Cubbie Hackathon, Track 2. The people, files and keys in the story are made up.</p>
+</footer>
+
+<script>
+(() => {
+"use strict";
+
+const SVG = "http://www.w3.org/2000/svg";
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const PLAYABLE = ["theo_help", "ade_take_demo-video", "omar_fix", "omar_share", "omar_slot"];
+const BURST = new Set(["who_knows", "watch_check", "claims", "commit"]);
+const LEFT = "nina";
+
+const S = {
+  index: null, cache: new Map(), trace: null, story: "main", choices: {},
+  i: 0, playing: false, speed: 1, token: 0, waiting: false,
+  asleep: new Set(), threads: new Map(), other: "omar", win: {}, lastBoard: null, made: new Set(),
+};
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const stage = $("#stage");
+const caption = $("#caption");
+const grid = $(".player-grid");
+const phones = { left: $("#phone-left"), right: $("#phone-right") };
+
+// ------------------------------------------------------------ helpers
+function el(tag, attrs = {}, parent) {
+  const node = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+function h(tag, cls, html) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (html != null) node.innerHTML = html;
+  return node;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function pretty(text) {
+  return esc(text).replace(/(^|[\s(“"])((?:[\w.-]+\/)+[\w.-]+\.\w+|\.env)\b/g, "$1<code>$2</code>");
+}
+const steps = () => S.trace.steps;
+const first = id => (S.trace.people.find(p => p.id === id) || { first: id }).first;
+const alive = token => token === S.token;
+function wait(ms) { return new Promise(r => setTimeout(r, ms / S.speed)); }
+function animate(ms, fn) {
+  if (REDUCE) { fn(1); return wait(Math.min(ms, 250)); }
+  return new Promise(resolve => {
+    const t0 = performance.now(), dur = ms / S.speed;
+    const tick = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      fn(p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+      p < 1 ? requestAnimationFrame(tick) : resolve();
+    };
+    requestAnimationFrame(tick);
+  });
+}
+async function getJSON(name) {
+  if (S.cache.has(name)) return S.cache.get(name);
+  const res = await fetch("traces/" + name);
+  if (!res.ok) throw new Error(name + ": " + res.status);
+  const data = await res.json();
+  S.cache.set(name, data);
+  return data;
+}
+function branchCode() {
+  return S.index.choices.map(c => S.choices[c.key] || c.values[0]).join("-");
+}
+const loadMain = () => getJSON(S.index.main[branchCode()]);
+
+// -------------------------------------------------------------- stage
+const LEFTS = [80, 184, 288, 392, 496], TOPS = [118, 248], WW = 64, WH = 76;
+let layers = {};
+
+function buildStage(people) {
+  stage.innerHTML = "";
+  const defs = el("defs", {}, stage);
+  defs.innerHTML = `
+    <linearGradient id="g-night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#090D28"/><stop offset="1" stop-color="#1D2766"/></linearGradient>
+    <linearGradient id="g-dawn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#25295F"/><stop offset=".62" stop-color="#B8667F"/><stop offset="1" stop-color="#FFB36A"/></linearGradient>
+    <linearGradient id="g-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4E7CCB"/><stop offset="1" stop-color="#A9C6EE"/></linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>`;
+  el("rect", { width: 640, height: 460, fill: "url(#g-night)" }, stage);
+  layers.dawn = el("rect", { width: 640, height: 460, fill: "url(#g-dawn)", opacity: 0 }, stage);
+  layers.day = el("rect", { width: 640, height: 460, fill: "url(#g-day)", opacity: 0 }, stage);
+  layers.stars = el("g", {}, stage);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 46; k++) {
+    el("circle", { cx: (rnd() * 640).toFixed(1), cy: (rnd() * 84).toFixed(1), r: (rnd() * 1.1 + .35).toFixed(2), fill: "#DDE3FF", opacity: (rnd() * .6 + .25).toFixed(2) }, layers.stars);
+  }
+  layers.moon = el("g", {}, stage);
+  el("circle", { cx: 588, cy: 42, r: 17, fill: "#E6EAFF" }, layers.moon);
+  el("circle", { cx: 596, cy: 36, r: 15, fill: "#121A4A" }, layers.moon);
+  layers.sun = el("circle", { cx: 614, cy: 470, r: 20, fill: "#FFD27F", opacity: 0 }, stage);
+  el("rect", { x: 46, y: 88, width: 548, height: 318, rx: 6, fill: "#1D2453" }, stage);
+  el("rect", { x: 46, y: 88, width: 548, height: 9, rx: 3, fill: "#2A3370" }, stage);
+  el("rect", { x: 0, y: 404, width: 640, height: 56, fill: "#0A0E26" }, stage);
+  layers.clock = el("text", { x: 22, y: 442, class: "clock" }, stage);
+  layers.date = el("text", { x: 150, y: 440, class: "day" }, stage);
+  el("text", { x: 618, y: 440, class: "due", "text-anchor": "end" }, stage).textContent = "Demo at 9:00 AM";
+  const sign = el("g", { class: "board-sign" }, stage);
+  el("rect", { x: 272, y: 362, width: 96, height: 30, rx: 5 }, sign);
+  el("text", { x: 320, y: 381 }, sign).textContent = "Team board";
+  layers.sign = sign;
+
+  S.win = {};
+  people.forEach((p, n) => {
+    const x = LEFTS[n % 5], y = TOPS[Math.floor(n / 5)];
+    const g = el("g", { class: "win", "data-id": p.id }, stage);
+    el("rect", { class: "glow", x: x - 8, y: y - 8, width: WW + 16, height: WH + 16, rx: 10, filter: "url(#blur)" }, g);
+    el("rect", { class: "pane", x, y, width: WW, height: WH, rx: 4 }, g);
+    el("rect", { x: x + WW / 2 - 1, y, width: 2, height: WH, fill: "#2A3370", opacity: .7 }, g);
+    el("rect", { class: "sill", x: x - 5, y: y + WH, width: WW + 10, height: 5, rx: 2 }, g);
+    el("text", { class: "z", x: x + WW - 15, y: y + 18 }, g).textContent = "z";
+    el("text", { class: "name", x: x + WW / 2, y: y + WH + 22 }, g).textContent = p.first;
+    el("circle", { class: "halo", cx: x + WW / 2, cy: y - 11, r: 7 }, g);
+    el("circle", { class: "dot", cx: x + WW / 2, cy: y - 11, r: 3.6 }, g);
+    S.win[p.id] = { g, x, y, cx: x + WW / 2, cy: y - 11 };
+  });
+  layers.trails = el("g", {}, stage);
+  layers.pulses = el("g", {}, stage);
+  layers.tags = el("g", {}, stage);
+}
+
+function anchor(id) {
+  if (id === "board") return { x: 320, y: 362 };
+  const w = S.win[id];
+  return w ? { x: w.cx, y: w.cy } : { x: 620, y: 300 };
+}
+function arc(a, b) {
+  const mx = (a.x + b.x) / 2, lift = 26 + Math.abs(a.x - b.x) * .22 + Math.abs(a.y - b.y) * .1;
+  const my = Math.min(a.y, b.y) - lift;
+  return `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+}
+function setSky(t) {
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const dawn = t < 405 ? clamp((t - 360) / 45) : clamp(1 - (t - 405) / 60);
+  const day = clamp((t - 405) / 75);
+  const night = clamp(1 - (t - 360) / 60);
+  layers.dawn.setAttribute("opacity", dawn.toFixed(3));
+  layers.day.setAttribute("opacity", day.toFixed(3));
+  layers.stars.setAttribute("opacity", night.toFixed(3));
+  layers.moon.setAttribute("opacity", night.toFixed(3));
+  const rise = clamp((t - 395) / 125);
+  layers.sun.setAttribute("cy", (470 - rise * 420).toFixed(1));
+  layers.sun.setAttribute("opacity", clamp((t - 395) / 30).toFixed(3));
+}
+function setClock(step) {
+  layers.clock.textContent = step.time;
+  setSky(step.t);
+  for (const side of ["left", "right"]) $(".lock .big", phones[side]).textContent = step.time.replace(/ [AP]M$/, "");
+}
+function flash(id, cls = "flash", ms = 700) {
+  const w = S.win[id];
+  if (!w) { if (id === "board") { layers.sign.classList.add("ping"); setTimeout(() => layers.sign.classList.remove("ping"), ms); } return; }
+  w.g.classList.add(cls);
+  setTimeout(() => w.g.classList.remove(cls), ms);
+}
+function centeredTag(x, y, text, cls = "", hold = 1400) {
+  const g = el("g", { class: "tag " + cls }, layers.tags);
+  const t = el("text", { x, y, "text-anchor": "middle" }, g);
+  t.textContent = text.length > 58 ? text.slice(0, 56) + "..." : text;
+  const bb = t.getBBox();
+  let dx = 0;
+  if (bb.x - 7 < 4) dx = 4 - (bb.x - 7);
+  if (bb.x + bb.width + 7 > 636) dx = 636 - (bb.x + bb.width + 7);
+  const top = Math.max(4, bb.y - 4);
+  const dy = top - (bb.y - 4);
+  t.setAttribute("x", x + dx);
+  t.setAttribute("y", y + dy);
+  g.insertBefore(el("rect", { x: bb.x - 7 + dx, y: top, width: bb.width + 14, height: bb.height + 8, rx: 6 }), t);
+  setTimeout(() => g.classList.add("out"), hold / S.speed);
+  setTimeout(() => g.remove(), hold / S.speed + 600);
+  return g;
+}
+async function fly(from, to, opts = {}) {
+  const { kind = "", dim = false, stop = false, reply = false, ms = 620 } = opts;
+  const a = anchor(from), b = anchor(to);
+  const cls = [kind, dim ? "dim" : "", stop ? "stop" : "", reply ? "reply" : ""].join(" ");
+  const path = el("path", { d: arc(a, b), class: "trail " + cls }, layers.trails);
+  const dot = el("circle", { r: kind === "commit" ? 5.5 : 4.4, class: "pulse " + cls }, layers.pulses);
+  const len = path.getTotalLength();
+  flash(from, "ping", 380);
+  await animate(ms, p => {
+    const pt = path.getPointAtLength(len * (stop ? p * .5 : p));
+    dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+  });
+  if (stop) {
+    const m = path.getPointAtLength(len * .5);
+    const x = el("g", {}, layers.pulses);
+    el("line", { class: "cross", x1: m.x - 7, y1: m.y - 7, x2: m.x + 7, y2: m.y + 7 }, x);
+    el("line", { class: "cross", x1: m.x + 7, y1: m.y - 7, x2: m.x - 7, y2: m.y + 7 }, x);
+    setTimeout(() => x.remove(), 1800 / S.speed);
+  } else {
+    flash(to, "ping", 380);
+  }
+  dot.remove();
+  setTimeout(() => path.classList.add("gone"), 300 / S.speed);
+  setTimeout(() => path.remove(), 1100 / S.speed);
+  return path;
+}
+function midOf(from, to) {
+  const a = anchor(from), b = anchor(to);
+  return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - 18 - Math.abs(a.x - b.x) * .11 };
+}
+
+// -------------------------------------------------------------- phones
+function sideOf(pid) { return pid === LEFT ? "left" : "right"; }
+function thread(pid) {
+  if (!S.threads.has(pid)) S.threads.set(pid, []);
+  return S.threads.get(pid);
+}
+function showOther(pid, force = false) {
+  if (pid === LEFT || (S.other === pid && !force)) return;
+  S.other = pid;
+  const phone = phones.right;
+  $(".who", phone).textContent = first(pid) + "'s phone";
+  $("#tab-right").textContent = first(pid) + "'s phone";
+  const box = $(".thread", phone);
+  box.innerHTML = "";
+  const items = thread(pid);
+  if (!items.length) box.appendChild(h("p", "empty", "Nothing yet."));
+  items.forEach(n => box.appendChild(n));
+  box.scrollTop = box.scrollHeight;
+  paintPhoneState(pid);
+}
+function paintPhoneState(pid) {
+  const phone = phones[sideOf(pid)];
+  if (sideOf(pid) === "right" && S.other !== pid) return;
+  const asleep = S.asleep.has(pid);
+  const state = $(".state", phone);
+  state.textContent = asleep ? "asleep" : "awake";
+  state.className = "state " + (asleep ? "asleep" : "awake");
+  $(".lock", phone).hidden = !asleep;
+}
+function push(pid, node) {
+  thread(pid).push(node);
+  if (pid !== LEFT) showOther(pid);
+  const box = $(".thread", phones[sideOf(pid)]);
+  const empty = $(".empty", box);
+  if (empty) empty.remove();
+  box.appendChild(node);
+  box.scrollTop = box.scrollHeight;
+  if (window.innerWidth <= 720 && pid !== LEFT && !S.fastForward) selectTab("right");
+  if (window.innerWidth <= 720 && pid === LEFT && !S.fastForward) selectTab("left");
+}
+function textBlock(text) {
+  const [head, ...rest] = text.split("\n");
+  const items = rest.filter(l => l.startsWith("- ")).map(l => `<li>${pretty(l.slice(2))}</li>`).join("");
+  return `<p>${pretty(head)}</p>` + (items ? `<ul>${items}</ul>` : "");
+}
+function diffHTML(diff) {
+  return diff.split("\n").filter(l => l.length).map(l => {
+    const c = l.startsWith("+++") || l.startsWith("---") || l.startsWith("@@") ? "h" : l.startsWith("+") ? "a" : l.startsWith("-") ? "d" : "";
+    return `<span class="${c}">${esc(l)}</span>`;
+  }).join("\n");
+}
+function phoneBubble(step) {
+  const who = step.sender === "person" ? "person" : "agent";
+  const b = h("div", `bubble ${who}${step.tone === "alert" ? " alert" : ""}`);
+  b.innerHTML = `<span class="stamp">${esc(step.time)}</span>` + textBlock(step.text);
+  if (step.card) {
+    const c = step.card;
+    const card = h("div", "commit");
+    card.innerHTML = `<span class="delta"><span class="a">+${c.added}</span> <span class="d">-${c.removed}</span></span><code class="path">${esc(c.path)}</code>` +
+      (c.diff ? `<details><summary>Show the change</summary><pre class="diff">${diffHTML(c.diff)}</pre></details>` : "");
+    b.appendChild(card);
+  }
+  return b;
+}
+function decisionBubble(step, live) {
+  const b = h("div", "bubble agent");
+  b.innerHTML = `<span class="stamp">${esc(step.time)}</span>` + textBlock(step.prompt);
+  if (step.diffs) {
+    const d = h("details");
+    const names = Object.keys(step.diffs);
+    d.innerHTML = `<summary>${names.length > 1 ? "Show both changes" : "Show the change"}</summary>` +
+      names.map(n => `<pre class="diff">${diffHTML(step.diffs[n])}</pre>`).join("");
+    b.appendChild(d);
+  }
+  const row = h("div", "choices" + (live ? " live" : ""));
+  step.options.forEach(o => {
+    const btn = h("button", "", esc(o.label));
+    btn.type = "button";
+    btn.dataset.value = o.value;
+    btn.disabled = !live;
+    row.appendChild(btn);
+  });
+  b.appendChild(row);
+  return b;
+}
+function markChosen(bubble, value) {
+  const row = $(".choices", bubble);
+  row.classList.remove("live");
+  row.querySelectorAll("button").forEach(btn => {
+    btn.disabled = true;
+    btn.classList.toggle("chosen", btn.dataset.value === value);
+  });
+}
+
+// --------------------------------------------------------------- board
+function renderBoard(parts, flags = {}) {
+  const list = $("#parts");
+  const prev = S.lastBoard ? Object.fromEntries(S.lastBoard.map(p => [p.id, p.owners.join() + p.note])) : {};
+  list.innerHTML = "";
+  for (const p of parts) {
+    const li = h("li");
+    const dup = p.owners.length > 1 && !p.note.startsWith("split");
+    const gap = !p.owners.length;
+    if (dup || (flags.duplicates || []).includes(p.id)) li.classList.add("dup");
+    if (gap) li.classList.add("gap");
+    const owners = gap ? "nobody" : p.owners.map(first).join(" and ");
+    li.innerHTML = `<span>${esc(p.name)}</span><span class="owners">${esc(owners)}</span>` + (p.note ? `<span class="note">${esc(p.note)}</span>` : "");
+    if (S.lastBoard && prev[p.id] !== p.owners.join() + p.note) {
+      li.classList.add("fresh");
+      setTimeout(() => li.classList.remove("fresh"), 2400);
+    }
+    list.appendChild(li);
+  }
+  S.lastBoard = parts;
+}
+function emptyBoard() {
+  S.lastBoard = null;
+  renderBoard(S.trace.parts.map(p => ({ id: p.id, name: p.name, owners: [], note: "" })));
+  $("#parts").querySelectorAll("li").forEach(li => { li.classList.remove("gap"); li.querySelector(".owners").textContent = "not posted yet"; });
+}
+
+// ------------------------------------------------------------- caption
+function say(text, time, turn = false) {
+  $("time", caption).textContent = time || "";
+  $("p", caption).textContent = text;
+  caption.classList.toggle("turn", turn);
+}
+
+// ---------------------------------------------------------- the steps
+function group(i) {
+  const s = steps(), head = s[i];
+  const base = k => k.startsWith("reply:") ? k.slice(6) : k;
+  if (head.type === "msg" && BURST.has(base(head.kind))) {
+    let j = i;
+    while (j < s.length && s[j].type === "msg" && s[j].t === head.t && base(s[j].kind) === base(head.kind)) j++;
+    return { start: i, end: j, items: s.slice(i, j), burst: base(head.kind) };
+  }
+  if (head.type === "status") {
+    let j = i;
+    while (j < s.length && s[j].type === "status" && s[j].t === head.t) j++;
+    return { start: i, end: j, items: s.slice(i, j) };
+  }
+  return { start: i, end: i + 1, items: [head] };
+}
+
+function setAsleep(pid, asleep) {
+  asleep ? S.asleep.add(pid) : S.asleep.delete(pid);
+  const w = S.win[pid];
+  if (w) w.g.classList.toggle("awake", !asleep);
+  paintPhoneState(pid);
+}
+
+async function perform(g, token, fast) {
+  const s = g.items[0];
+  setClock(s);
+  if (g.burst) return fast ? null : burst(g);
+  switch (s.type) {
+    case "caption":
+      say(s.text, s.time);
+      if (!fast) await wait(Math.min(7600, 1500 + s.text.length * 30));
+      return;
+    case "status":
+      g.items.forEach(x => setAsleep(x.person, x.state === "asleep"));
+      if (!fast && s.t !== steps()[0].t) await wait(650);
+      return;
+    case "phone": {
+      push(s.person, phoneBubble(s));
+      if (!fast) { flash(s.person); await wait(Math.min(4800, 900 + s.text.length * 17)); }
+      return;
+    }
+    case "decision": return decide(s, g.start, token, fast);
+    case "msg": return fast ? null : single(s);
+    case "blocked": return fast ? null : blocked(s);
+    case "commit": return fast ? null : commit(s);
+    case "board":
+      renderBoard(s.parts, s);
+      if (!fast) { flash("board", "ping", 900); await wait(1100); }
+      return;
+  }
+}
+
+async function single(s) {
+  const reply = s.kind.startsWith("reply:");
+  const files = (s.files || []).length;
+  const m = midOf(s.sender, s.to);
+  centeredTag(m.x, m.y + (reply ? 22 : 0), s.label, s.kind === "commit" ? "commit" : "", reply ? 1700 : 1200);
+  await fly(s.sender, s.to, { reply, kind: s.kind === "commit" ? "commit" : "", ms: files ? 760 : 600 });
+  await wait(260);
+}
+
+async function blocked(s) {
+  const m = midOf(s.sender, s.to);
+  if (!S.win[s.sender]) {
+    centeredTag(320, 112, `${s.sender} is not on the team: turned away`, "stop", 2600);
+    flash(s.to, "ping", 600);
+    await wait(2000);
+    return;
+  }
+  centeredTag(m.x, m.y - 14, `blocked: ${s.reason}`, "stop", 2600);
+  await fly(s.sender, s.to, { stop: true, ms: 700 });
+  await wait(1500);
+}
+
+async function burst(g) {
+  const reqs = g.items.filter(x => !x.kind.startsWith("reply:"));
+  const reps = g.items.filter(x => x.kind.startsWith("reply:"));
+  const k = g.burst;
+  const sender = reqs[0] && reqs[0].sender;
+  if (k === "claims") {
+    centeredTag(320, 344, "every agent posts its person's parts", "", 1900);
+    await Promise.all(reqs.map((x, n) => wait(n * 40).then(() => fly(x.sender, "board", { ms: 700 }))));
+    await wait(300);
+    return;
+  }
+  if (k === "commit") {
+    await Promise.all(reqs.map(x => fly(x.sender, x.to, { kind: "commit", ms: 760 })));
+    if (reps.length) await Promise.all(reps.map(x => fly(x.sender, x.to, { reply: true, dim: true, ms: 520 })));
+    return;
+  }
+  const what = k === "who_knows" ? "who knows this?" : (reqs[0] ? reqs[0].label : "");
+  if (reqs.length > 1) centeredTag(S.win[sender].cx, S.win[sender].cy - 14, `asks ${reqs.length} agents: ${what}`, "", 1900);
+  await Promise.all(reqs.map(x => fly(x.sender, x.to, { ms: 680 })));
+  await wait(120);
+  const loud = reps.filter(x => !/^(no|seen|ok)$/.test(x.label));
+  loud.forEach(x => {
+    const w = S.win[x.sender];
+    centeredTag(w.cx, w.cy - 14, x.label, "", 2600);
+  });
+  await Promise.all(reps.map(x => fly(x.sender, x.to, { reply: true, dim: !loud.includes(x), ms: 680 })));
+  await wait(loud.length ? 1300 : 350);
+}
+
+async function commit(s) {
+  const c = s.card;
+  const owner = S.win[c.owner];
+  const names = s.to.map(first);
+  const list = names.length ? names.slice(0, -1).join(", ") + (names.length > 1 ? " and " : "") + names.slice(-1) : "nobody";
+  centeredTag(owner.cx, owner.cy - 14, `commit ${c.path} +${c.added} -${c.removed}, only to ${list}`, "commit", 2600);
+  Object.keys(S.win).forEach(id => {
+    if (id !== c.owner && !s.to.includes(id)) S.win[id].g.classList.add("out");
+  });
+  await wait(1700);
+  Object.keys(S.win).forEach(id => S.win[id].g.classList.remove("out"));
+}
+
+async function decide(s, index, token, fast) {
+  const live = !fast && S.story === "main" && PLAYABLE.includes(s.key);
+  const bubble = decisionBubble(s, live);
+  push(s.person, bubble);
+  if (fast) { markChosen(bubble, s.chosen); return; }
+  flash(s.person);
+  if (!live) {
+    await wait(1500);
+    markChosen(bubble, s.chosen);
+    await wait(700);
+    return;
+  }
+  const prevCaption = [$("p", caption).textContent, $("time", caption).textContent];
+  say(`Your call. You're ${first(s.person)}: pick an answer on ${first(s.person)}'s phone.`, s.time, true);
+  S.waiting = true;
+  paintControls();
+  if (window.innerWidth <= 720) phones[sideOf(s.person)].scrollIntoView({ behavior: REDUCE ? "auto" : "smooth", block: "center" });
+  const value = await new Promise(resolve => {
+    bubble.querySelectorAll(".choices button").forEach(btn => btn.addEventListener("click", () => resolve(btn.dataset.value), { once: true }));
+    S.resolveChoice = resolve;
+  });
+  S.waiting = false;
+  S.resolveChoice = null;
+  if (!alive(token)) return;
+  markChosen(bubble, value);
+  S.made.add(s.key);
+  if (value !== s.chosen) {
+    S.choices[s.key] = value;
+    const next = await loadMain();
+    if (!alive(token)) return;
+    S.trace = next;
+  } else {
+    S.choices[s.key] = value;
+  }
+  say(prevCaption[0], prevCaption[1]);
+  paintTimeline();
+  paintControls();
+  await wait(600);
+}
+
+// ------------------------------------------------------------ playback
+async function run(token) {
+  while (S.playing && alive(token) && S.i < steps().length) {
+    const g = group(S.i);
+    await perform(g, token, false);
+    if (!alive(token)) return;
+    S.i = g.end;
+    paintProgress();
+  }
+  if (alive(token) && S.i >= steps().length) finished();
+}
+function play() {
+  if (S.waiting) return;
+  if (S.i >= steps().length) { restart(true); return; }
+  S.playing = true;
+  paintControls();
+  run(S.token);
+}
+function pause() { S.playing = false; paintControls(); }
+async function nextStep() {
+  if (S.waiting || S.i >= steps().length) return;
+  S.playing = false;
+  const token = S.token;
+  paintControls();
+  const g = group(S.i);
+  await perform(g, token, false);
+  if (!alive(token)) return;
+  S.i = g.end;
+  paintProgress();
+  if (S.i >= steps().length) finished();
+}
+function finished() {
+  S.playing = false;
+  paintControls();
+  paintLedger(S.trace);
+}
+function clearStage() {
+  layers.trails.innerHTML = ""; layers.pulses.innerHTML = ""; layers.tags.innerHTML = "";
+  Object.values(S.win).forEach(w => w.g.classList.remove("out", "ping", "flash"));
+}
+function resetView() {
+  S.token++;
+  S.playing = false; S.waiting = false; S.i = 0;
+  if (S.resolveChoice) S.resolveChoice(null);
+  S.asleep = new Set(); S.threads = new Map(); S.other = null;
+  clearStage();
+  $(".thread", phones.left).innerHTML = "";
+  $(".thread", phones.left).appendChild(h("p", "empty", "What Nina types shows up in amber. What her agent tells her shows up in blue."));
+  emptyBoard();
+  showOther("omar", true);
+}
+async function seek(target) {
+  resetView();
+  S.fastForward = true;
+  let i = 0;
+  while (i < target) {
+    const g = group(i);
+    await perform(g, S.token, true);
+    i = g.end;
+  }
+  S.fastForward = false;
+  S.i = i;
+  if (i <= initialIndex()) {
+    say(S.story === "rogue"
+      ? "Press play to watch one agent get tricked, and everything it tries get stopped."
+      : "Press play. It's 1:07 AM and the demo is at 9.", steps()[0].time);
+  }
+  paintProgress(); paintControls();
+}
+async function restart(autoplay = false) {
+  if (S.story === "main") {
+    S.choices = {}; S.made = new Set();
+    S.trace = await loadMain();
+  }
+  await seek(initialIndex());
+  if (autoplay) play();
+}
+function initialIndex() {
+  let i = 0;
+  while (i < steps().length && steps()[i].type === "status") i++;
+  return i;
+}
+async function switchStory(story, autoplay) {
+  S.story = story;
+  $("#board").hidden = story === "rogue";
+  document.querySelectorAll(".story-pick button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.story === story)));
+  S.trace = story === "rogue" ? await getJSON(S.index.rogue) : (S.choices = {}, S.made = new Set(), await loadMain());
+  await seek(initialIndex());
+  paintTimeline();
+  if (autoplay) play();
+}
+
+// ------------------------------------------------------------ controls
+function paintControls() {
+  const btn = $("#play");
+  const done = S.i >= steps().length;
+  btn.textContent = S.playing ? "Pause" : done ? "Play again" : S.i > initialIndex() ? "Resume" : "Play";
+  btn.disabled = S.waiting;
+  $("#next").disabled = S.waiting || done;
+}
+function paintTimeline() {
+  const box = $("#timeline");
+  box.querySelectorAll(".tick, .mark, .gap").forEach(n => n.remove());
+  const s = steps(), n = s.length;
+  const at = idx => (idx / n) * 100;
+  const hours = [];
+  for (let hr = 1; hr <= 9; hr++) {
+    const idx = s.findIndex(x => x.t >= hr * 60);
+    if (idx >= 0) hours.push({ hr, pos: at(idx) });
+  }
+  let last = -100;
+  const gap = (56 / Math.max(1, box.clientWidth)) * 100;
+  hours.forEach(x => {
+    if (x.pos - last < gap) return;
+    const tk = h("span", "tick" + (x.pos < 3 ? " edge" : ""), `${x.hr} AM`);
+    tk.style.left = x.pos + "%";
+    box.appendChild(tk);
+    last = x.pos;
+  });
+  s.forEach((x, idx) => {
+    if (x.type === "decision" && PLAYABLE.includes(x.key) && S.story === "main") {
+      const mk = h("span", "mark" + (idx < S.i ? " done" : ""));
+      mk.style.left = at(idx) + "%";
+      mk.title = `${first(x.person)} decides`;
+      box.appendChild(mk);
+    }
+  });
+  paintProgress();
+}
+function paintProgress() {
+  const n = steps().length;
+  const pct = Math.min(100, (S.i / n) * 100);
+  $("#timeline .fill").style.width = pct + "%";
+  $("#timeline").setAttribute("aria-valuenow", Math.round(pct));
+  const marks = [...document.querySelectorAll("#timeline .mark")];
+  let k = 0;
+  steps().forEach((x, idx) => {
+    if (x.type === "decision" && PLAYABLE.includes(x.key) && S.story === "main") {
+      if (marks[k]) marks[k].classList.toggle("done", idx < S.i);
+      k++;
+    }
+  });
+}
+function selectTab(side) {
+  grid.dataset.tab = side;
+  $("#tab-left").setAttribute("aria-selected", String(side === "left"));
+  $("#tab-right").setAttribute("aria-selected", String(side === "right"));
+}
+
+// -------------------------------------------------------------- ledger
+const KIND_WORDS = {
+  who_knows: "who-knows questions", fetch: "requests for notes", share_request: "requests for a file",
+  help: "requests for help", time: "requests for time", change: "change requests", watch_check: "checks on who needs a change",
+  commit: "commit cards", claims: "board posts", slot: "time slot replies", delivery: "late deliveries",
+};
+function paintLedger(trace) {
+  const sm = trace.summary;
+  const crossed = $("#crossed"), never = $("#never");
+  crossed.innerHTML = ""; never.innerHTML = "";
+  const row = (list, a, b) => { const li = h("li"); li.innerHTML = `<span>${a}</span><span>${b}</span>`; list.appendChild(li); };
+  row(crossed, "Messages between agents", sm.messages);
+  Object.entries(sm.requests).filter(([k]) => KIND_WORDS[k]).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => row(crossed, KIND_WORDS[k], v));
+  sm.files_crossed.forEach(f => row(crossed, `<code>${esc(f.path)}</code>`, `${esc(first(f.owner))}'s, shared`));
+  sm.never_left.forEach(f => row(never, `<code class="file">${esc(f.path)}</code>`, `${esc(first(f.person))}'s`));
+  row(never, "Phones that lit up for someone asleep", sm.woken_up);
+  row(never, "Private files sent", 0);
+  if (sm.blocked.length) row(never, "Attempts stopped at a gate", sm.blocked.length);
+  $("#ledger-intro").textContent = trace.story === "rogue"
+    ? "Counted from the rogue agent run."
+    : "Counted from the run you just watched. Pick different answers and the numbers change.";
+}
+
+// ---------------------------------------------------------------- wire
+$("#play").addEventListener("click", () => (S.playing ? pause() : play()));
+$("#next").addEventListener("click", nextStep);
+$("#restart").addEventListener("click", () => restart(false));
+$("#speed").addEventListener("click", e => {
+  S.speed = S.speed === 1 ? 2 : 1;
+  e.currentTarget.setAttribute("aria-pressed", String(S.speed === 2));
+});
+document.querySelectorAll(".story-pick button").forEach(b => b.addEventListener("click", () => switchStory(b.dataset.story, false)));
+const go = (story) => { $("#player").scrollIntoView({ behavior: REDUCE ? "auto" : "smooth" }); switchStory(story, true); };
+$("#go-main").addEventListener("click", () => go("main"));
+$("#go-rogue").addEventListener("click", () => go("rogue"));
+$("#go-rogue-2").addEventListener("click", () => go("rogue"));
+$("#tab-left").addEventListener("click", () => selectTab("left"));
+$("#tab-right").addEventListener("click", () => selectTab("right"));
+const tl = $("#timeline");
+tl.addEventListener("click", e => {
+  if (S.waiting) return;
+  const r = tl.getBoundingClientRect();
+  const target = Math.round(((e.clientX - r.left) / r.width) * steps().length);
+  let i = 0;
+  while (i < steps().length) { const g = group(i); if (g.end > target) break; i = g.end; }
+  const wasPlaying = S.playing;
+  seek(Math.max(initialIndex(), i)).then(() => { if (wasPlaying) play(); });
+});
+tl.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { e.preventDefault(); nextStep(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.closest("button, input, textarea, [role=slider]")) return;
+  if (e.key === " ") { e.preventDefault(); S.playing ? pause() : play(); }
+  if (e.key === "ArrowRight") nextStep();
+});
+
+async function init() {
+  try {
+    S.index = await getJSON("index.json");
+    S.trace = await loadMain();
+  } catch (err) {
+    say("The story files didn't load. Open this page through a web server, for example: python3 -m http.server -d site", "");
+    return;
+  }
+  buildStage(S.trace.people);
+  layers.date.textContent = (S.trace.project && S.trace.project.day) || "";
+  paintTimeline();
+  await seek(initialIndex());
+  paintLedger(S.trace);
+  getJSON(S.index.rogue).catch(() => {});
+}
+init();
+})();
+</script>
+</body>
+</html>
