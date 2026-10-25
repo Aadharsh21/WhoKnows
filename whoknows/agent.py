@@ -339,7 +339,10 @@ class PersonalAgent:
                 reply["shared"] = [self._file(p, sender) for p in notes]
             self.net.send(self.id, sender, "help_answer", reply)
 
-        self.ask(self._key("help"), f"{who}'s agent: \"{about}.\" Hop on a call for {minutes} minutes now?",
+        quoted = about.strip()
+        if quoted and quoted[-1] not in ".?!":
+            quoted += "."
+        self.ask(self._key("help"), f"{who}'s agent: \"{quoted}\" Hop on a call for {minutes} minutes now?",
                  [("yes", "Yes, call now"), ("no", "Not now")], answer)
         return {"status": "asking"}
 

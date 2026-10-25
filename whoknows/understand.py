@@ -28,7 +28,10 @@ HELP = """Things you can say to your agent:
 - i'm doing the readme tonight
 Demo controls: seat <name>, seats, board, check (runs the team board check), skip to 7:00, status, reset"""
 
-PATH = re.compile(r"(?<![\w/])((?:[\w-]+/)*[\w.-]+\.(?:py|md|tsx|ts|js|json|sql|swift|txt|csv|yml|yaml))\b")
+# A file someone names: payments/charge.py, notes/retry-change.md, or a dotfile like .env, which people
+# ask for by name too (the policy keeps it private; it has to be understood before it can be refused).
+PATH = re.compile(r"(?<![\w/])((?:[\w-]+/)*(?:[\w.-]+\.(?:py|md|tsx|ts|js|json|sql|swift|txt|csv|yml|yaml|pem|key)"
+                  r"|\.env(?:\.[\w-]+)?))\b")
 RECIPE_HINTS = (
     (re.compile(r"(?i)idempotency|same key|one key"), "idempotency_key"),
     (re.compile(r"(?i)(?:drop|remove|turn off|disable|no)\s+(?:the\s+)?retr"), "drop_retry"),
@@ -42,7 +45,8 @@ def _people(team):
 def _named(text, team, exclude=None):
     names = _people(team)
     for word in re.findall(r"[a-z]+", text.lower()):
-        pid = names.get(word)
+        # "omars agent" is how people type "omar's agent" on a phone, so a possessive without the apostrophe counts.
+        pid = names.get(word) or (names.get(word[:-1]) if word.endswith("s") else None)
         if pid and pid != exclude:
             return pid
     return None

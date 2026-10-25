@@ -37,6 +37,19 @@ class RuleTests(unittest.TestCase):
     def test_your_own_name_is_not_the_target(self):
         self.assertNotEqual(self.parse("can nina hop on a call", me="nina")["action"], "help")
 
+    def test_how_people_actually_type(self):
+        # Typed live on Discord: no apostrophe, so it used to come back as "who knows" instead of a change request.
+        change = self.parse("ask omars agent to send the same idempotency key on every retry in charge.py")
+        self.assertEqual((change["action"], change["person"], change["path"]), ("change", "omar", "charge.py"))
+        curly = self.parse("ask omar’s agent to send the same idempotency key on every retry in charge.py")
+        self.assertEqual(curly["person"], "omar")
+        self.assertEqual(self.parse("can lucas hop on a call?")["person"], "lucas")
+
+    def test_a_dotfile_is_understood_so_it_can_be_refused(self):
+        self.assertEqual(self.parse("ask theo for .env"), {"action": "file", "person": "theo", "path": ".env"})
+        self.assertEqual(self.parse("ask theo for his config/.env.local file")["path"], "config/.env.local")
+        self.assertEqual(self.parse("ask omar for drafts/charge-fix-wip.py")["path"], "drafts/charge-fix-wip.py")
+
 
 class LiveTests(unittest.TestCase):
     def setUp(self):
@@ -60,7 +73,7 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(self.dms(self.omar), [])  # Omar is asleep: nothing reaches him
 
         live.out.clear()
-        self.assertEqual(live.handle(self.nina, "skip to 7:00"), "It's now 7:00 AM in the demo.")
+        self.assertIsNone(live.handle(self.nina, "skip to 7:00"))
         question = next(o for o in self.dms(self.omar) if o.question)
         self.assertEqual([v for v, _ in question.options], ["approve", "decline"])
         self.assertEqual(live.answer(self.nina, question.question, "approve"), "That question is for someone else.")
@@ -101,6 +114,48 @@ class LiveTests(unittest.TestCase):
     def test_people_without_a_seat_are_asked_to_take_one(self):
         self.assertIn("Take a seat first", self.live.handle("user-c", "who knows the payments code?"))
         self.assertIn("Someone already has Nina", self.live.handle("user-c", "seat nina"))
+
+    def test_skipping_ahead_reads_in_order(self):
+        # The new time used to arrive first, followed by "It's 2:00 AM ... Nina is asleep now".
+        self.assertIsNone(self.live.handle(self.nina, "skip to 7:00"))
+        texts = [o.text for o in self.dms(self.nina)]
+        self.assertIn("2:00 AM in the demo and Nina is asleep now", texts[0])
+        self.assertEqual(texts[-1], "It's now 7:00 AM in the demo.")
+        self.assertIn("Demo time only moves forward", self.live.handle(self.nina, "skip to 6:00"))
+
+
+class NinaAndTheoTests(unittest.TestCase):
+    """The two seats awake together at 1:07 AM, so both people answer live."""
+
+    def setUp(self):
+        self.live = Live()
+        self.nina, self.theo = "user-a", "user-c"
+        self.live.handle(self.nina, "seat nina")
+        self.live.handle(self.theo, "seat theo")
+        self.live.out.clear()
+
+    def dms(self, user):
+        return [o for o in self.live.out if o.kind == "dm" and o.to == user]
+
+    def test_a_secret_is_refused_and_its_owner_is_told(self):
+        self.live.handle(self.nina, "ask theo for .env")
+        self.assertIn("can't share .env", self.dms(self.nina)[-1].text)
+        self.assertIn("didn't share it or say it exists", self.dms(self.theo)[-1].text)
+        self.assertFalse(any(o.question for o in self.live.out))  # Theo isn't even asked
+        self.assertFalse(any("GITHUB_TOKEN" in o.text for o in self.live.out))
+
+    def test_code_waits_for_its_owner_and_a_no_keeps_it(self):
+        self.live.handle(self.nina, "ask theo for payments/retry.py")
+        ask = next(o for o in self.dms(self.theo) if o.question)
+        self.assertEqual([v for v, _ in ask.options], ["share", "keep"])
+        self.live.out.clear()
+        self.assertEqual(self.live.answer(self.theo, ask.question, "keep"), "Keep it private")
+        self.assertFalse(any("payments/retry.py]" in o.text for o in self.live.out))  # no file crossed
+
+    def test_a_call_request_quotes_the_question_cleanly(self):
+        self.live.handle(self.nina, "can theo hop on a call?")
+        ask = next(o for o in self.dms(self.theo) if o.question)
+        self.assertIn('"can theo hop on a call?" Hop on a call for 15 minutes now?', ask.text)
 
 
 if __name__ == "__main__":
