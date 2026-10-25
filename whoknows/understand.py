@@ -13,11 +13,13 @@ import re
 
 from .cards import parts_in
 
-ACTIONS = ("who_knows", "fetch", "file", "help", "change", "time", "claim",
+ACTIONS = ("who_knows", "question", "pass_on", "fetch", "file", "help", "change", "time", "claim",
            "seat", "clock", "board", "check", "status", "reset", "help_text", "unknown")
 
 HELP = """Things you can say to your agent:
 - who knows the payments code?
+- why would a retry get a 409?   (answered from teammates' shareable notes, with sources)
+- pass it on                     (sends your last question to the person most likely to know)
 - get omar's notes on payments
 - ask omar for drafts/charge-fix-wip.py
 - can theo hop on a call?
@@ -114,7 +116,13 @@ def by_rules(text: str, me: str | None, team: dict) -> dict:
     if who and re.search(r"\b(?:notes|docs|anything|stuff|info)\b", low):
         return {"action": "fetch", "person": who, "part": (parts_in(t, parts) or [None])[0]}
 
-    if re.search(r"\b(?:who|anyone|anybody)\b", low) or parts_in(t, parts):
+    if re.fullmatch(r"(?:pass (?:it|that|this) on|ask them(?: directly)?|pass it to them|send it to them)[.!]?", low):
+        return {"action": "pass_on"}
+    if re.search(r"\b(?:who|anyone|anybody)\b", low):
+        return {"action": "who_knows", "question": t}
+    if t.endswith("?") or re.match(r"(?:why|what|how|when|where|which|does|do|is|are|can|should)\b", low):
+        return {"action": "question", "question": t}
+    if parts_in(t, parts):
         return {"action": "who_knows", "question": t}
     return {"action": "unknown"}
 
@@ -155,6 +163,8 @@ class Understander:
         system = (
             "You route one message a student typed to their own team agent. Pick the single best action.\n"
             "who_knows: they want to find who works on or knows about something.\n"
+            "question: they ask a factual question about the project that a teammate's notes might answer.\n"
+            "pass_on: they want their last question sent to the teammate most likely to know.\n"
             "fetch: they want a teammate's shareable notes about a part.\n"
             "file: they want a specific file from a teammate.\n"
             "help: they want a teammate's time right now (a call, a look).\n"

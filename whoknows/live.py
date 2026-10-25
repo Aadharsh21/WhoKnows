@@ -68,6 +68,7 @@ class Live:
         root = scenario.build(Path(tempfile.mkdtemp(prefix="whoknows-")))
         self.out = []
         self.pending: dict[str, tuple] = {}
+        self.questions: dict[str, str] = {}  # each seat's last question, for "pass it on"
         self._qid = 0
         self.net = build_network(root, network_cls=LiveNetwork, drafter=SmartDrafter(self.ai), live=self)
         self.start = clock.parse(self.START)
@@ -235,6 +236,18 @@ class Live:
         self.net.typed(me, text)
         if act == "who_knows":
             agent.find_who_knows(a.get("question") or text)
+        elif act == "question":
+            self.questions[me] = a.get("question") or text
+            agent.ask_question(self.questions[me])
+        elif act == "pass_on":
+            question = self.questions.get(me)
+            if not question:
+                return "Ask your question first, then say pass it on."
+            if not agent.last_hits:
+                agent.find_who_knows(question)
+            if not agent.last_hits:
+                return "Nobody's agent knows of anyone on that, so there's no one to pass it to yet."
+            agent.pass_on(question)
         elif act == "fetch":
             agent.fetch_from(a["person"], a.get("part"), look_for=("must", "idempotency"))
         elif act == "file":

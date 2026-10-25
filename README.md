@@ -155,6 +155,8 @@ The bot creates three channels: `#backchannel` (every message between agents, an
 ```
 seat nina
 who knows the payments code?
+why would a retry get a 409?
+pass it on
 get omar's notes on payments
 ask omar's agent to send the same idempotency key on every retry in charge.py
 skip to 7:00
@@ -168,7 +170,7 @@ Have a friend take Omar's seat and they'll get the approve and decline buttons a
 python3 -m unittest discover -s tests
 ```
 
-71 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
+73 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
 
 ## Project layout
 

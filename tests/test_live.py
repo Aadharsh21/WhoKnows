@@ -27,6 +27,12 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(self.parse("skip to 7:00"), {"action": "clock", "before": "07:00"})
         self.assertEqual(self.parse("skip to 7:45 am"), {"action": "clock", "before": "07:45"})
 
+    def test_questions_and_passing_them_on(self):
+        self.assertEqual(self.parse("why would a retry get a 409?"),
+                         {"action": "question", "question": "why would a retry get a 409?"})
+        self.assertEqual(self.parse("who knows the payments code?")["action"], "who_knows")
+        self.assertEqual(self.parse("pass it on"), {"action": "pass_on"})
+
     def test_your_own_name_is_not_the_target(self):
         self.assertNotEqual(self.parse("can nina hop on a call", me="nina")["action"], "help")
 
@@ -62,6 +68,18 @@ class LiveTests(unittest.TestCase):
         self.assertIn("Idempotency-Key", omar_files.read("payments/charge.py"))
         commit = next(o for o in live.out if "COMMIT" in o.text)
         self.assertIn("sent only to Nina, Theo and Ade", commit.text)
+
+    def test_answers_with_sources_and_a_question_passed_on(self):
+        live = self.live
+        live.handle(self.nina, "who knows the payments code?")
+        live.handle(self.nina, "why would a retry get a 409?")
+        answer = self.dms(self.nina)[-1].text
+        self.assertIn("docs/payments-api.md", answer)
+        self.assertIn("rejects it with a 409", answer)
+        live.handle(self.nina, "is the 409 new this week?")
+        live.handle(self.nina, "pass it on")
+        self.assertIn("who will see it around 7:00 AM", self.dms(self.nina)[-1].text)
+        self.assertEqual(self.dms(self.omar), [])  # asleep: it waits for his morning summary
 
     def test_people_without_a_seat_are_asked_to_take_one(self):
         self.assertIn("Take a seat first", self.live.handle("user-c", "who knows the payments code?"))

@@ -13,7 +13,7 @@ Record the site at 1440 by 900 in Chrome with the speed control at 1x, and Disco
 | 0:59 | The board: "Checkout page: Nina (Ade is backup)". | Every half hour the agents also check that no part of the demo depends on one person. |
 | 1:04 | Switch to "If an agent goes rogue". Red stops on the stage. | And if an agent gets tricked into stealing secrets or wiping a file, the gate stops it. It doesn't trust the agent. |
 | 1:12 | Scroll to "In numbers". Hold on the table. | We ran the real agents against a week of questions on generated teams of thirty. A group chat notified 29 people per question. WhoKnows notified about one, and its agents never pinged anyone asleep. |
-| 1:22 | Discord: Swayam types "who knows the payments code?" and taps Approve on a change. | It runs live in Discord, with buttons for every decision. |
+| 1:22 | Discord: Swayam types "why would a retry get a 409?", gets the quote, then taps Approve on a change from Omar's seat. | It runs live in Discord, with buttons for every decision. |
 | 1:27 | Back to the top of the site. Show the repo link. | WhoKnows. Your agent asks theirs, so you don't have to. |
 
 ## Tips
