@@ -1,0 +1,91 @@
+{
+ "choices": [
+  {
+   "key": "theo_help",
+   "values": [
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "key": "ade_take_demo-video",
+   "values": [
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "key": "omar_fix",
+   "values": [
+    "nina",
+    "theo",
+    "neither"
+   ]
+  },
+  {
+   "key": "omar_share",
+   "values": [
+    "share",
+    "keep"
+   ]
+  },
+  {
+   "key": "omar_slot",
+   "values": [
+    "yes",
+    "no"
+   ]
+  }
+ ],
+ "main": {
+  "yes-yes-nina-share-yes": "main-yes-yes-nina-share-yes.json",
+  "yes-yes-nina-share-no": "main-yes-yes-nina-share-no.json",
+  "yes-yes-nina-keep-yes": "main-yes-yes-nina-keep-yes.json",
+  "yes-yes-nina-keep-no": "main-yes-yes-nina-keep-no.json",
+  "yes-yes-theo-share-yes": "main-yes-yes-theo-share-yes.json",
+  "yes-yes-theo-share-no": "main-yes-yes-theo-share-no.json",
+  "yes-yes-theo-keep-yes": "main-yes-yes-theo-keep-yes.json",
+  "yes-yes-theo-keep-no": "main-yes-yes-theo-keep-no.json",
+  "yes-yes-neither-share-yes": "main-yes-yes-neither-share-yes.json",
+  "yes-yes-neither-share-no": "main-yes-yes-neither-share-no.json",
+  "yes-yes-neither-keep-yes": "main-yes-yes-neither-keep-yes.json",
+  "yes-yes-neither-keep-no": "main-yes-yes-neither-keep-no.json",
+  "yes-no-nina-share-yes": "main-yes-no-nina-share-yes.json",
+  "yes-no-nina-share-no": "main-yes-no-nina-share-no.json",
+  "yes-no-nina-keep-yes": "main-yes-no-nina-keep-yes.json",
+  "yes-no-nina-keep-no": "main-yes-no-nina-keep-no.json",
+  "yes-no-theo-share-yes": "main-yes-no-theo-share-yes.json",
+  "yes-no-theo-share-no": "main-yes-no-theo-share-no.json",
+  "yes-no-theo-keep-yes": "main-yes-no-theo-keep-yes.json",
+  "yes-no-theo-keep-no": "main-yes-no-theo-keep-no.json",
+  "yes-no-neither-share-yes": "main-yes-no-neither-share-yes.json",
+  "yes-no-neither-share-no": "main-yes-no-neither-share-no.json",
+  "yes-no-neither-keep-yes": "main-yes-no-neither-keep-yes.json",
+  "yes-no-neither-keep-no": "main-yes-no-neither-keep-no.json",
+  "no-yes-nina-share-yes": "main-no-yes-nina-share-yes.json",
+  "no-yes-nina-share-no": "main-no-yes-nina-share-no.json",
+  "no-yes-nina-keep-yes": "main-no-yes-nina-keep-yes.json",
+  "no-yes-nina-keep-no": "main-no-yes-nina-keep-no.json",
+  "no-yes-theo-share-yes": "main-no-yes-theo-share-yes.json",
+  "no-yes-theo-share-no": "main-no-yes-theo-share-no.json",
+  "no-yes-theo-keep-yes": "main-no-yes-theo-keep-yes.json",
+  "no-yes-theo-keep-no": "main-no-yes-theo-keep-no.json",
+  "no-yes-neither-share-yes": "main-no-yes-neither-share-yes.json",
+  "no-yes-neither-share-no": "main-no-yes-neither-share-no.json",
+  "no-yes-neither-keep-yes": "main-no-yes-neither-keep-yes.json",
+  "no-yes-neither-keep-no": "main-no-yes-neither-keep-no.json",
+  "no-no-nina-share-yes": "main-no-no-nina-share-yes.json",
+  "no-no-nina-share-no": "main-no-no-nina-share-no.json",
+  "no-no-nina-keep-yes": "main-no-no-nina-keep-yes.json",
+  "no-no-nina-keep-no": "main-no-no-nina-keep-no.json",
+  "no-no-theo-share-yes": "main-no-no-theo-share-yes.json",
+  "no-no-theo-share-no": "main-no-no-theo-share-no.json",
+  "no-no-theo-keep-yes": "main-no-no-theo-keep-yes.json",
+  "no-no-theo-keep-no": "main-no-no-theo-keep-no.json",
+  "no-no-neither-share-yes": "main-no-no-neither-share-yes.json",
+  "no-no-neither-share-no": "main-no-no-neither-share-no.json",
+  "no-no-neither-keep-yes": "main-no-no-neither-keep-yes.json",
+  "no-no-neither-keep-no": "main-no-no-neither-keep-no.json"
+ },
+ "rogue": "rogue.json"
+}
