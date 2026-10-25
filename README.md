@@ -8,7 +8,7 @@ Everyone on a team gets their own AI agent. When you need something, your agent 
 
 Built for the Cubbie Hackathon at DevHacks 2026, Track 2 (agent-to-agent coordination).
 
-**[Play the demo](https://aadharsh21.github.io/WhoKnows/)** · **[See the numbers](#in-numbers)** · **[Run it in Discord](#run-it-in-discord)** · **[Read the one-page design](docs/design.md)**
+**[Play the demo](https://aadharsh21.github.io/WhoKnows/)** · **[Try it live in Discord](https://discord.gg/NdTDPptqSs)** · **[See the numbers](#in-numbers)** · **[Read the one-page design](docs/design.md)**
 
 ## The problem
 
@@ -189,6 +189,10 @@ python3 -m http.server -d site 8000      # then open http://localhost:8000
 ## Run it in Discord
 
 The same agents, live. Each person DMs the bot, takes a seat (`seat nina`), and from then on talks to their own agent. Seats nobody takes are played by simulated teammates who follow the same rules.
+
+**Try it now:** join the [WhoKnows Sandbox server](https://discord.gg/NdTDPptqSs), DM the bot and say `seat nina`. Bring a friend to take Omar's seat.
+
+To run it on your own server:
 
 1. Create an application at the Discord Developer Portal, add a bot, and copy its token.
 2. Invite it to your server with the `bot` scope and the Send Messages, Read Message History and Manage Channels permissions.
