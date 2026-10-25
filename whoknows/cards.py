@@ -113,7 +113,15 @@ def when_words(epoch: float, now: datetime) -> str:
         return f"tonight at {at}" if t.hour < 5 else f"today at {at}"
     if days == 1:
         return f"yesterday at {at}"
-    return f"on {t.strftime('%A')} at {at}"
+    if days < 7:
+        return f"on {t.strftime('%A')} at {at}"
+    if days < 14:
+        return "last week"
+    if days < 60:
+        return f"{days // 7} weeks ago"
+    if days < 330:
+        return f"in {t.strftime('%B')}"
+    return f"in {t.strftime('%B %Y')}"
 
 
 def join(items) -> str:

@@ -486,6 +486,22 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
     <details class="assume"><summary>How it works and what it assumes</summary><ul id="assumptions"></ul></details>
   </section>
 
+  <section class="text wrap" id="real">
+    <h2>Try it on a real repo</h2>
+    <p class="intro">The night above runs on a made-up team. This runs on a real one. Point WhoKnows at any git repository and every recent contributor gets an agent that knows only their own commits. Here it is on Flask, with 60 contributors' agents:</p>
+    <pre class="cmd">$ python3 -m whoknows.repo flask "who knows the session cookie code?"
+
+Asked 60 agents at once. 6 know, 54 said no. People notified: 0.
+1. David Lord changed src/flask/sessions.py in June 2024: add SESSION_COOKIE_PARTITIONED config
+2. Éloi Rivard changed docs/config.rst in April 2024: document caveats on SESSION_COOKIE_DOMAIN
+3. lkk7 changed src/flask/testing.py in July: Fix IPv6 session transactions
+
+What they wrote, quoted from their own commit messages:
+- Éloi Rivard: "document caveats on SESSION_COOKIE_DOMAIN (commit 4a1766c2) Changing this
+  value might result in browsers with several competing session cookies."</pre>
+    <p class="intro">It reads only what people already committed: file paths, commit messages and CODEOWNERS. Run it on your own team's repo with <code>python3 -m whoknows.repo PATH "your question"</code>.</p>
+  </section>
+
   <section class="text wrap" id="rogue">
     <h2>When an agent goes rogue</h2>
     <p class="intro">Theo's agent reads a poisoned README in some package and starts following its orders. It asks for Omar's secrets, tries to wipe one of his files while skipping his approval, and asks Nina's agent to forward Omar's notes. Then it tries to get other agents to send private files anyway. Every attempt stops, and Omar hears about all of it when he wakes up.</p>
@@ -512,7 +528,7 @@ python3 -m whoknows --choose omar_fix=theo --choose theo_help=no
 python3 -m whoknows --rogue
 python3 -m whoknows.bench        # the numbers above</pre>
     <p class="intro">The same agents also run live in Discord: each person DMs the bot, takes a seat, and talks to their own agent, while empty seats are played by simulated teammates. Every message between agents shows up in a #backchannel channel.</p>
-    <p class="intro">75 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
+    <p class="intro">83 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
   </section>
 </main>
 

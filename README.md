@@ -65,6 +65,45 @@ How much people write down matters. With nothing in shared notes, WhoKnows notif
 
 What it assumes, in short: an awake person answers within 15 minutes and a sleeping one 15 minutes after waking; about a quarter of answers belong to whoever changed a part recently rather than its owner; a few belong to someone who left no trace anywhere; half of all answers are in notes their holder shares. Questions use the same words as the plan and the notes, and real questions are messier, so keyword routing would miss some of them. The full list is in [`whoknows/bench.py`](whoknows/bench.py) and on the site.
 
+## Try it on a real repo
+
+The story runs on a made-up team. This runs on a real one. Point WhoKnows at any git repository and every recent contributor gets an agent that knows only their own commits, plus any CODEOWNERS lines that name them. Ask who knows something: every agent checks its own person's history, the ones who know answer with one line of why, and they quote their own commit messages about it, naming the commit. Nobody is notified.
+
+```sh
+git clone https://github.com/pallets/flask
+python3 -m whoknows.repo flask "who knows the session cookie code?" "why do blueprints need unique names?"
+```
+
+Real output, Flask at commit d086db85:
+
+```
+WhoKnows on flask: 60 people with an agent, 211 files, 576 commits from the last 1825 days.
+
+> who knows the session cookie code?
+  Asked 60 agents at once. 6 know, 54 said no. People notified: 0.
+  1. David Lord changed src/flask/sessions.py in June 2024: add SESSION_COOKIE_PARTITIONED config (one of 21 changes they made to it)
+  2. Éloi Rivard changed docs/config.rst in April 2024: document caveats on SESSION_COOKIE_DOMAIN
+  3. lkk7 changed src/flask/testing.py in July: Fix IPv6 session transactions
+  4. James Addison changed src/flask/sessions.py in March 2025: secret key rotation: fix key list ordering
+  5. Kevin Kirsche changed src/flask/sessions.py in June 2022: session expiration datetime is UTC timezone-aware
+  What they wrote, quoted from their own commit messages:
+  - David Lord: "add SESSION_COOKIE_PARTITIONED config (commit 9efc1ebe, 2024-06-10)"
+  - Éloi Rivard: "document caveats on SESSION_COOKIE_DOMAIN (commit 4a1766c2, 2024-04-15) Changing this value might result in browsers with several competing session cookies. In that situation there is no guarantee of which one will be sent first, and be used as the"
+  - lkk7: "Fix IPv6 session transactions (commit de8429ff, 2026-07-14)"
+
+> why do blueprints need unique names?
+  Asked 60 agents at once. 10 know, 50 said no. People notified: 0.
+  1. David Lord changed src/flask/blueprints.py in November 2021: same blueprint cannot be registered with same name (one of 16 changes they made to it)
+  2. lkk7 changed src/flask/app.py in July: Fix IPv6 server name parsing
+  3. kadai0308 changed src/flask/sansio/blueprints.py in May 2025: use template_filter without parens
+  4. abhiram kamini changed docs/server.rst in May 2025: Update server.rst
+  5. kotvkvante changed docs/patterns/appfactories.rst in January 2025: fix bash cli syntax error and app name
+  What they wrote, quoted from their own commit messages:
+  - David Lord: "same blueprint cannot be registered with same name (commit 48f2afbf, 2021-11-12)"
+```
+
+It matches the words in file paths and commit messages, so it finds what people wrote down, not what they know but never committed. Words that appear in most paths, like the package's own name, are ignored, and so are words like "code" and "fix" that say nothing about which part a question is about.
+
 ## How it works
 
 ```mermaid
@@ -134,6 +173,7 @@ python3 -m whoknows --rogue                           # the rogue agent story
 python3 -m whoknows --quiet                           # only what people see, no agent traffic
 python3 -m whoknows --export site/traces              # regenerate every branch for the site
 python3 -m whoknows.bench --out site/bench.json       # the benchmark (about a minute)
+python3 -m whoknows.repo PATH "who knows the auth code?"  # ask a real repo's contributors' agents
 ```
 
 Choices: `theo_help` (yes, no), `ade_take_demo-video` (yes, no), `omar_fix` (nina, theo, neither), `omar_share` (share, keep), `omar_slot` (yes, no).
@@ -181,7 +221,7 @@ Have a friend take Omar's seat and they'll get the approve and decline buttons a
 python3 -m unittest discover -s tests
 ```
 
-75 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
+83 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, real repos (bots left out, CODEOWNERS, no email addresses in quotes), and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
 
 ## Project layout
 
@@ -196,6 +236,7 @@ python3 -m unittest discover -s tests
 | `whoknows/scenario.py` | The demo team: ten people, their folders, and a real git history |
 | `whoknows/story.py` | The 1 AM story and the rogue story |
 | `whoknows/bench.py` | The benchmark against a group chat and messaging your best guess |
+| `whoknows/repo.py` | WhoKnows on any real git repo: an agent per contributor, built from their own commits |
 | `whoknows/live.py`, `whoknows/bot.py` | Live seats and the Discord bot |
 | `whoknows/understand.py`, `whoknows/drafting.py` | Reading what people type, and drafting changes |
 | `site/` | The playable site |

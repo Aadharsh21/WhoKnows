@@ -58,7 +58,7 @@ The agent itself might be fooled, for example by instructions planted in a READM
 
 ## Evidence
 
-`python3 -m whoknows.bench` generates five teams of 30 with a plan, a git history and notes, asks a week of questions, and runs the real agents against two baselines. People notified per question: 29 in a group chat, 5.3 messaging your best guess, 1.2 with WhoKnows. Notifications reaching someone asleep per week: 678, 117, and 12, all 12 from the times WhoKnows fell back to the group chat. 75 tests run on Python 3.9 and 3.13 in CI.
+`python3 -m whoknows.bench` generates five teams of 30 with a plan, a git history and notes, asks a week of questions, and runs the real agents against two baselines. People notified per question: 29 in a group chat, 5.3 messaging your best guess, 1.2 with WhoKnows. Notifications reaching someone asleep per week: 678, 117, and 12, all 12 from the times WhoKnows fell back to the group chat. 83 tests run on Python 3.9 and 3.13 in CI. `python3 -m whoknows.repo` runs the same agents on any real git repo, one per contributor, built from their own commits.
 
 ## Limits
 
