@@ -28,7 +28,7 @@ person <-> their agent <-> gate <-> network <-> gate <-> teammate's agent <-> te
 | Gate | `gate.py` | Re-reads every outgoing file from disk, re-applies the owner's rules, checks every quote is really in the file, and scans all text for things that look like keys. It doesn't trust the agent. |
 | Search | `search.py` | Finds the paragraph in a person's own shareable files that best matches a question and returns it word for word, so the gate can verify it. |
 | Agent | `agent.py` | Answers other agents, asks its person before anything that changes files or spends time, holds questions while its person sleeps. |
-| Network | `network.py` | Delivery, the clock, the trace, and the half-hourly team check (duplicates, orphans, bus factor). |
+| Network | `network.py` | Delivery, the clock, the trace, and an on-demand team check (duplicates, orphans, bus factor). |
 
 ## Protocol
 

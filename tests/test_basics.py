@@ -94,7 +94,7 @@ class GateTests(unittest.TestCase):
 
     def test_ask_files_need_the_owner_first(self):
         self.assertFalse(self.share("drafts/fix.py")[0])
-        self.gate.approved.add(("drafts/fix.py", "nina"))
+        self.gate.approve("drafts/fix.py", "nina")
         self.assertTrue(self.share("drafts/fix.py")[0])
 
     def test_cannot_forward_files_that_are_not_yours(self):
