@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run the tests (standard library only)
+        run: python -m unittest discover -s tests -v
+      - name: Run the story end to end
+        run: python -m whoknows --quiet
+      - name: Check the site's traces match the code
+        run: |
+          python -m whoknows --export /tmp/traces
+          diff -r /tmp/traces site/traces
