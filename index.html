@@ -32,6 +32,9 @@
   --stop: #FF8C7A;
   --add: #8EE0B0;
   --del: #FF9C9C;
+  --c-chat: #D95926;   /* chart series, validated as a set on --night (all pairs) */
+  --c-guess: #199E70;
+  --c-wk: #4F8FEA;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -126,6 +129,7 @@ h1 .agent { font-weight: 640; color: var(--agent); }
 .bubble.person { align-self: flex-end; background: var(--lamp); color: var(--lamp-ink); border-bottom-right-radius: 5px; font-variation-settings: "CASL" 1, "MONO" 0; }
 .bubble.person code { color: var(--lamp-ink); }
 .bubble.alert { box-shadow: inset 3px 0 0 var(--stop); }
+.bubble.receipts { box-shadow: inset 3px 0 0 var(--add); }
 .bubble .stamp { display: block; margin-bottom: 3px; font-size: 12px; color: var(--faint); font-variation-settings: "MONO" 1, "CASL" 0; }
 .bubble.person .stamp { color: #7A5A1E; }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -161,6 +165,7 @@ pre.diff .h { color: var(--faint); }
 .parts li.dup .owners { color: var(--lamp); }
 .parts li.gap .owners { color: var(--stop); }
 .parts li.fresh { background: rgba(255, 196, 107, .10); }
+.parts li .crit { margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid #3B4592; font-size: 11px; color: var(--dim); vertical-align: 2px; }
 
 /* sections */
 section.text { padding-top: 64px; padding-bottom: 8px; }
@@ -190,6 +195,43 @@ table.fit th { width: 30%; font-weight: 650; }
 table.fit td { color: var(--dim); }
 pre.cmd { margin: 12px 0; padding: 14px 16px; border-radius: 12px; background: var(--deep); border: 1px solid var(--line); font-size: 15px; overflow-x: auto; }
 footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size: 15px; }
+
+/* numbers */
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin: 4px 0 36px; }
+.kpi { padding: 18px 20px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--deep); }
+.kpi .label { margin: 0; font-size: 15px; color: var(--dim); }
+.kpi .value { margin: 8px 0 6px; font-size: 54px; line-height: 1; font-weight: 700; color: var(--ink); }
+.kpi .vs { margin: 0; font-size: 15px; color: var(--dim); }
+.scroll-x { overflow-x: auto; }
+table.nums { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.nums th, table.nums td { padding: 11px 0 11px 14px; border-top: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+table.nums th:first-child, table.nums td:first-child { padding-left: 0; text-align: left; color: var(--dim); font-weight: 400; }
+table.nums thead th { font-weight: 650; color: var(--ink); border-top: 0; vertical-align: bottom; white-space: nowrap; }
+table.nums td.us { color: var(--ink); font-weight: 650; }
+table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; font-size: 14px; color: var(--faint); }
+.key { display: inline-block; width: 16px; height: 2px; border-radius: 1px; vertical-align: middle; margin-right: 8px; }
+.charts { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 48px; margin-top: 48px; align-items: start; }
+.charts h3 { font-size: 20px; margin: 0 0 4px; }
+.charts p.sub { margin: 0 0 12px; color: var(--dim); font-size: 15px; }
+.chart-box { position: relative; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--dim); margin: 0 0 4px; }
+#scale-chart { display: block; width: 100%; height: auto; }
+#scale-chart:focus-visible { outline-offset: 6px; }
+#scale-chart .grid line { stroke: #232B66; stroke-width: 1; }
+#scale-chart .axis text { fill: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+#scale-chart .series path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+#scale-chart .series circle { stroke: var(--night); stroke-width: 2; }
+#scale-chart .end { fill: var(--ink); font-size: 13px; }
+#scale-chart .end tspan.v { font-weight: 650; }
+#scale-chart .xhair { stroke: #5A64A8; stroke-width: 1; }
+.tip { position: absolute; z-index: 2; pointer-events: none; padding: 8px 11px; border-radius: 10px; background: #0A0E26; border: 1px solid var(--line); font-size: 13px; line-height: 1.55; white-space: nowrap; }
+.tip[hidden] { display: none; }
+.tip .head { color: var(--faint); }
+.tip .row { display: flex; align-items: center; color: var(--dim); }
+.tip .row b { min-width: 2.6em; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.assume { margin-top: 34px; color: var(--dim); font-size: 15px; max-width: 54em; }
+.assume ul { margin: 12px 0 0; padding-left: 20px; }
+.assume li + li { margin-top: 8px; }
 
 /* stage */
 #stage text { font-family: "Recursive", sans-serif; }
@@ -244,6 +286,8 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
   .rules dt { padding-bottom: 4px; }
   .rules dd { border-top: 0; padding-top: 0; }
   .ledger { grid-template-columns: 1fr; gap: 28px; }
+  .kpis { grid-template-columns: 1fr; gap: 14px; }
+  .charts { grid-template-columns: 1fr; gap: 36px; }
 }
 @media (max-width: 720px) {
   body { font-size: 17px; }
@@ -264,6 +308,11 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
   .parts { grid-template-columns: 1fr; }
   h2 { font-size: 29px; }
   table.fit th { width: 38%; }
+  .kpi .value { font-size: 44px; }
+  table.nums { font-size: 14px; }
+  table.nums th, table.nums td { padding-left: 8px; }
+  table.nums thead th { white-space: normal; }
+  table.nums thead .key { display: block; margin: 0 0 6px auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -276,6 +325,7 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
   <a class="mark" href="#">who<i>knows</i></a>
   <nav aria-label="Sections">
     <a href="#how">How it works</a>
+    <a href="#numbers">In numbers</a>
     <a href="#rogue" class="opt">Rogue agent</a>
     <a href="#code">Code</a>
   </nav>
@@ -336,7 +386,7 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
 
     <div class="board wrap" id="board">
       <h2>Team board</h2>
-      <p>Every half hour the agents post which parts their person owns. Only part names go up, nothing else.</p>
+      <p>Every half hour the agents post which parts their person owns and knows. Only part names go up, nothing else. If a part the demo needs is known by just one person, someone awake is asked to be the backup.</p>
       <ul class="parts" id="parts"></ul>
     </div>
   </section>
@@ -355,10 +405,16 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
           <li class="t-never"><strong>Never leaves:</strong> secrets and personal files. Other agents don't even learn they exist.</li>
         </ul>
         A gate re-reads every outgoing file from disk and re-applies the owner's rules, so an agent that's been fooled still can't leak one.</dd>
+      <dt>Answer with sources</dt>
+      <dd>A question goes to the people who know. Each agent answers for its person, even one who's asleep, by <strong>quoting their shareable notes word for word and naming the file</strong>. The gate checks every quote against the file on disk, so an agent can't invent one or quote a draft. If nothing written down answers it, the question goes to the single best match, at a decent hour.</dd>
+      <dt>No part rests on one person</dt>
+      <dd>The agents also count who knows each part the demo depends on. When it's only one person, a teammate who is awake and watches that code is asked to be the backup, and their agent pulls the shareable notes right away. Tonight Ade backs up Nina on checkout and Lucas backs up Priya on login.</dd>
       <dt>Ask before acting</dt>
       <dd>An agent never offers its person's time and never changes their files without asking first. <strong>If they're asleep, the question waits for morning.</strong> In every run of the story, nobody's phone lights up while they sleep.</dd>
       <dt>Settle conflicts</dt>
       <dd>Two fixes for the same lines wait side by side and the owner picks. Three people who need the same person get one shared slot instead of three interruptions. Two people writing the README get a split. A part nobody owns gets a volunteer, starting with whoever is awake and good at it.</dd>
+      <dt>Earn trust, keep receipts</dt>
+      <dd>Anything an agent does without asking while its person sleeps goes on a <strong>receipt</strong> they see when they wake, with one tap to make it ask first next time. After an owner approves a small, clean change, their agent offers to let that teammate's small changes through without asking. Each one still sends a commit, and <strong>undo is one tap</strong>.</dd>
       <dt>Send changes like commits</dt>
       <dd>A change to someone's file is a request, drafted on the owner's side, shown as an exact before and after, and saved only after they approve. Then it goes out like a commit, but <strong>only to the people it affects</strong>: whoever asked, anyone with a copy, anyone who works on that code or watches it. Copies refresh themselves. Everyone else hears nothing.</dd>
     </dl>
@@ -373,6 +429,29 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
     </div>
   </section>
 
+  <section class="text wrap" id="numbers">
+    <h2>In numbers</h2>
+    <p class="intro">One night is a story. To check it holds up, we generated teams of 30, each with a plan, a git history, and everyone's notes, drafts and secrets, then asked a week of questions, about one per person per day. The real agents answered every one. Two baselines got the same questions: a team group chat, and messaging your best guess. Where a rule for them had to be guessed, it was guessed in their favor.</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="scroll-x"><table class="nums" id="nums"></table></div>
+    <div class="charts">
+      <div class="chart-box" id="scale-box">
+        <h3>People notified per question, by team size</h3>
+        <p class="sub">A group chat grows with the team. Asking the agents doesn't.</p>
+        <div class="legend" id="scale-legend"></div>
+        <svg id="scale-chart" viewBox="0 0 560 300" tabindex="0" role="img" aria-label="People notified per question by team size, for a group chat, messaging your best guess, and WhoKnows. The table below has the values."></svg>
+        <div class="tip" id="scale-tip" hidden></div>
+        <details><summary>Show as a table</summary><table class="nums" id="scale-table"></table></details>
+      </div>
+      <div>
+        <h3>If less is written down</h3>
+        <p class="sub">How much people write in notes they share changes how often someone has to answer by hand. It never makes an agent ping someone who's asleep.</p>
+        <div class="scroll-x"><table class="nums" id="written"></table></div>
+      </div>
+    </div>
+    <details class="assume"><summary>How it works and what it assumes</summary><ul id="assumptions"></ul></details>
+  </section>
+
   <section class="text wrap" id="rogue">
     <h2>When an agent goes rogue</h2>
     <p class="intro">Theo's agent reads a poisoned README in some package and starts following its orders. It asks for Omar's secrets, tries to wipe one of his files while skipping his approval, and asks Nina's agent to forward Omar's notes. Then it tries to get other agents to send private files anyway. Every attempt stops, and Omar hears about all of it when he wakes up.</p>
@@ -383,10 +462,11 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
     <h2>How it fits Track 2</h2>
     <table class="fit">
       <tr><th>Personal agents for different students</th><td>Every teammate has one. It knows only its own person's work and answers only for them.</td></tr>
-      <tr><th>Agents exchange what matters toward a shared outcome</th><td>Finding who knows, sharing notes, asking for time, and proposing changes, all aimed at a working demo by 9 AM.</td></tr>
-      <tr><th>Conflicting constraints</th><td>Two fixes for the same lines, three people needing one person, two owners for the README, and a demo video nobody owns.</td></tr>
-      <tr><th>What they share</th><td>Yes or no answers, one-line reasons, and files by each owner's tiers. Never secrets or personal files, enforced by a gate in code.</td></tr>
-      <tr><th>When they ask their students</th><td>Before giving away time, before sharing anything not marked shareable, and before any change to their files. Never while they sleep.</td></tr>
+      <tr><th>Agents exchange what matters toward a shared outcome</th><td>Finding who knows, answering from notes, sharing files, asking for time, lining up backups, and proposing changes, all aimed at a working demo by 9 AM.</td></tr>
+      <tr><th>Conflicting constraints</th><td>Two fixes for the same lines, three people needing one person, two owners for the README, a demo video nobody owns, and parts only one person knows.</td></tr>
+      <tr><th>What they share</th><td>Yes or no answers, one-line reasons, quotes the gate checks against the file, and files by each owner's tiers. Never secrets or personal files, enforced by a gate in code.</td></tr>
+      <tr><th>When they ask their students</th><td>Before giving away time, before sharing anything not marked shareable, and before any change to their files, until the owner says small ones from a teammate can go through. Never while they sleep.</td></tr>
+      <tr><th>Does it help</th><td id="fit-numbers">Measured on a week of questions against a group chat and messaging your best guess. See In numbers above.</td></tr>
     </table>
   </section>
 
@@ -395,9 +475,10 @@ footer { padding-top: 56px; padding-bottom: 48px; color: var(--faint); font-size
     <p class="intro">The story above is a replay of a Python engine with no outside packages. Run any branch in a terminal:</p>
     <pre class="cmd">python3 -m whoknows
 python3 -m whoknows --choose omar_fix=theo --choose theo_help=no
-python3 -m whoknows --rogue</pre>
+python3 -m whoknows --rogue
+python3 -m whoknows.bench        # the numbers above</pre>
     <p class="intro">The same agents also run live in Discord: each person DMs the bot, takes a seat, and talks to their own agent, while empty seats are played by simulated teammates. Every message between agents shows up in a #backchannel channel.</p>
-    <p class="intro">48 tests cover the sharing tiers, the gate, colliding changes, commits, the team board, every one of the 48 story branches, the rogue agent, and the live Discord layer. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>.</p>
+    <p class="intro">71 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
   </section>
 </main>
 
@@ -653,9 +734,15 @@ function push(pid, node) {
   if (window.innerWidth <= 720 && pid === LEFT && !S.fastForward) selectTab("left");
 }
 function textBlock(text) {
-  const [head, ...rest] = text.split("\n");
-  const items = rest.filter(l => l.startsWith("- ")).map(l => `<li>${pretty(l.slice(2))}</li>`).join("");
-  return `<p>${pretty(head)}</p>` + (items ? `<ul>${items}</ul>` : "");
+  let html = "", list = "";
+  const flush = () => { if (list) { html += `<ul>${list}</ul>`; list = ""; } };
+  for (const line of text.split("\n")) {
+    if (line.startsWith("- ")) { list += `<li>${pretty(line.slice(2))}</li>`; continue; }
+    flush();
+    if (line.trim()) html += `<p>${pretty(line)}</p>`;
+  }
+  flush();
+  return html;
 }
 function diffHTML(diff) {
   return diff.split("\n").filter(l => l.length).map(l => {
@@ -665,7 +752,8 @@ function diffHTML(diff) {
 }
 function phoneBubble(step) {
   const who = step.sender === "person" ? "person" : "agent";
-  const b = h("div", `bubble ${who}${step.tone === "alert" ? " alert" : ""}`);
+  const tone = step.tone === "alert" || step.tone === "receipts" ? " " + step.tone : "";
+  const b = h("div", `bubble ${who}${tone}`);
   b.innerHTML = `<span class="stamp">${esc(step.time)}</span>` + textBlock(step.text);
   if (step.card) {
     const c = step.card;
@@ -718,7 +806,10 @@ function renderBoard(parts, flags = {}) {
     if (dup || (flags.duplicates || []).includes(p.id)) li.classList.add("dup");
     if (gap) li.classList.add("gap");
     const owners = gap ? "nobody" : p.owners.map(first).join(" and ");
-    li.innerHTML = `<span>${esc(p.name)}</span><span class="owners">${esc(owners)}</span>` + (p.note ? `<span class="note">${esc(p.note)}</span>` : "");
+    const crit = p.critical ? `<span class="crit" title="The demo depends on this part">demo</span>` : "";
+    const backup = (p.backup || []).length ? `${p.backup.map(first).join(" and ")} is backup` : "";
+    const note = [p.note, backup].filter((x, i, all) => x && all.indexOf(x) === i).join(". ");
+    li.innerHTML = `<span>${esc(p.name)}${crit}</span><span class="owners">${esc(owners)}</span>` + (note ? `<span class="note">${esc(note)}</span>` : "");
     if (S.lastBoard && prev[p.id] !== p.owners.join() + p.note) {
       li.classList.add("fresh");
       setTimeout(() => li.classList.remove("fresh"), 2400);
@@ -1051,6 +1142,7 @@ const KIND_WORDS = {
   who_knows: "who-knows questions", fetch: "requests for notes", share_request: "requests for a file",
   help: "requests for help", time: "requests for time", change: "change requests", watch_check: "checks on who needs a change",
   commit: "commit cards", claims: "board posts", slot: "time slot replies", delivery: "late deliveries",
+  question: "questions answered from notes", backup: "backup requests",
 };
 function paintLedger(trace) {
   const sm = trace.summary;
@@ -1067,6 +1159,153 @@ function paintLedger(trace) {
   $("#ledger-intro").textContent = trace.story === "rogue"
     ? "Counted from the rogue agent run."
     : "Counted from the run you just watched. Pick different answers and the numbers change.";
+}
+
+// ------------------------------------------------------------- numbers
+const ARMS = [
+  { key: "group_chat", name: "Group chat", color: "var(--c-chat)" },
+  { key: "best_guess", name: "Best guess", color: "var(--c-guess)" },
+  { key: "whoknows", name: "WhoKnows", color: "var(--c-wk)" },
+];
+const pct = v => Math.round(v * 100) + "%";
+const one = v => (Math.round(v * 10) / 10).toFixed(1);
+const whole = v => Math.round(v).toLocaleString("en-US");
+const num = v => (Math.abs(v - Math.round(v)) < .05 ? whole(v) : one(v));
+function mins(m, short = false) {
+  m = Math.round(m);
+  const hr = Math.floor(m / 60), mm = m % 60;
+  if (hr) return `${hr}h ${String(mm).padStart(2, "0")}m`;
+  return short ? `${mm}m` : `${mm} min`;
+}
+function tableHTML(corner, cols, rows, usCol) {
+  const head = `<thead><tr><th scope="col">${esc(corner)}</th>` + cols.map(c => `<th scope="col">${c}</th>`).join("") + "</tr></thead>";
+  const body = rows.map(([label, cells]) => `<tr><th scope="row">${esc(label)}</th>` +
+    cells.map((v, i) => `<td${i === usCol ? ' class="us"' : ""}>${esc(v)}</td>`).join("") + "</tr>").join("");
+  return head + `<tbody>${body}</tbody>`;
+}
+const keyed = x => `<span class="key" style="background:${x.color}"></span>${esc(x.name)}`;
+
+function renderNumbers(d) {
+  const a = d.main.arms, wk = a.whoknows, gc = a.group_chat, bg = a.best_guess;
+  const kpis = $("#kpis");
+  kpis.innerHTML = "";
+  [
+    ["People notified per question", one(wk.notified_per_question),
+      `vs ${num(gc.notified_per_question)} in a group chat and ${num(bg.notified_per_question)} messaging your best guess.`],
+    ["Notifications to someone asleep, per week", whole(wk.night_pings_per_week),
+      `vs ${whole(gc.night_pings_per_week)} in a group chat. All of them came from falling back to the group chat. The agents caused ${wk.agent_night_pings}.`],
+    ["Answered on the spot", pct(wk.answered_at_once),
+      "quoted word for word from the holder's own shareable notes, with nobody interrupted."],
+  ].forEach(([label, value, vs]) => {
+    const k = h("div", "kpi");
+    k.innerHTML = `<p class="label">${esc(label)}</p><p class="value">${esc(value)}</p><p class="vs">${esc(vs)}</p>`;
+    kpis.appendChild(k);
+  });
+
+  const per = f => ARMS.map(x => f(a[x.key]));
+  $("#nums").innerHTML = tableHTML(`Teams of ${d.main.team}`, ARMS.map(keyed), [
+    ["People notified per question", per(s => one(s.notified_per_question))],
+    ["Notifications to someone asleep, per week", per(s => whole(s.night_pings_per_week))],
+    ["Average wait for the answer", per(s => mins(s.mean_minutes))],
+    ["Wait for the slowest 1 in 10", per(s => mins(s.p90_minutes))],
+    ["Answered on the spot", per(s => pct(s.answered_at_once))],
+    ["First person asked knew the answer", per(s => pct(s.first_try))],
+  ], 2) + `<caption>${d.main.weeks} generated teams of ${d.main.team}, a week each, ${whole(d.main.questions)} questions. ` +
+    `The agents found the person who knew ${pct(wk.found)} of the time, sent ${Math.round(wk.messages_per_question)} ` +
+    `agent to agent messages per question, and fell back to the group chat ${wk.fallbacks} times. ` +
+    `Nothing private was sent and the gates blocked nothing.</caption>`;
+
+  const w = d.written, wa = r => r.arms.whoknows;
+  $("#written").innerHTML = tableHTML("Answers in shared notes", w.map(r => pct(r.written)), [
+    ["People notified per question", w.map(r => one(wa(r).notified_per_question))],
+    ["Average wait", w.map(r => mins(wa(r).mean_minutes, true))],
+    ["Answered on the spot", w.map(r => pct(wa(r).answered_at_once))],
+    ["Agent pings to someone asleep", w.map(r => whole(wa(r).agent_night_pings))],
+  ], -1) + `<caption>WhoKnows only. The 50% column is the table above. When the agents fell back to the group chat, ` +
+    `that chat still reached people asleep: ${w.map(r => whole(wa(r).night_pings_per_week)).join(", ")} notifications a week.</caption>`;
+
+  $("#scale-table").innerHTML = tableHTML("Team size", d.sizes.map(r => String(r.team)),
+    ARMS.map(x => [x.name, d.sizes.map(r => one(r.arms[x.key].notified_per_question))]), -1);
+  $("#scale-legend").innerHTML = ARMS.map(x => `<span>${keyed(x)}</span>`).join("");
+  $("#assumptions").innerHTML = d.assumptions.map(t => `<li>${esc(t)}</li>`).join("") +
+    `<li>Run it yourself with <code>python3 -m whoknows.bench</code>. Every team, question and answer comes from a fixed seed, so the numbers come out the same every time.</li>`;
+  drawScale(d.sizes);
+  const fit = $("#fit-numbers");
+  if (fit) fit.textContent = `Measured on a week of questions: ${num(wk.notified_per_question)} people notified per question instead of ${num(gc.notified_per_question)} in a group chat, ${pct(wk.answered_at_once)} answered on the spot, and no agent ever pinged anyone asleep.`;
+}
+
+function drawScale(sizes) {
+  const svg = $("#scale-chart"), tip = $("#scale-tip"), box = $("#scale-box");
+  svg.innerHTML = "";
+  const W = Math.round(Math.max(300, Math.min(560, box.clientWidth || 560))), H = W < 420 ? 260 : 300;
+  const L = 34, R = 128, T = 12, B = 36;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const xmax = 50, ymax = 50;
+  const X = v => L + (v / xmax) * (W - L - R), Y = v => T + (1 - v / ymax) * (H - T - B);
+  const grid = el("g", { class: "grid" }, svg), axis = el("g", { class: "axis" }, svg);
+  for (let v = 0; v <= ymax; v += 10) {
+    el("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v) }, grid);
+    el("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end" }, axis).textContent = v;
+  }
+  sizes.forEach(r => { el("text", { x: X(r.team), y: H - B + 20, "text-anchor": "middle" }, axis).textContent = r.team; });
+  el("text", { x: W - R, y: H - 4, "text-anchor": "end" }, axis).textContent = "people on the team";
+  const xhair = el("line", { class: "xhair", y1: T, y2: H - B, opacity: 0 }, svg);
+  const ends = [];
+  ARMS.forEach(x => {
+    const g = el("g", { class: "series" }, svg);
+    const pts = sizes.map(r => [X(r.team), Y(r.arms[x.key].notified_per_question)]);
+    el("path", { d: "M" + pts.map(p => p.join(",")).join(" L"), style: `stroke:${x.color}` }, g);
+    pts.forEach(p => el("circle", { cx: p[0], cy: p[1], r: 4, style: `fill:${x.color}` }, g));
+    const last = sizes[sizes.length - 1].arms[x.key].notified_per_question;
+    ends.push({ x, y: pts[pts.length - 1][1], v: last, px: pts[pts.length - 1][0] });
+  });
+  ends.sort((p, q) => p.y - q.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 17) ends[i].y = ends[i - 1].y + 17;
+  ends.forEach(e => {
+    const t = el("text", { class: "end", x: e.px + 12, y: e.y + 4 }, svg);
+    const v = el("tspan", { class: "v" }, t); v.textContent = one(e.v) + " ";
+    t.appendChild(document.createTextNode(e.x.name));
+  });
+  const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }, svg);
+  let at = -1;
+  const show = (i, clientX, clientY) => {
+    at = i;
+    const r = sizes[i];
+    xhair.setAttribute("x1", X(r.team)); xhair.setAttribute("x2", X(r.team)); xhair.setAttribute("opacity", 1);
+    tip.innerHTML = "";
+    const head = h("div", "head"); head.textContent = `Team of ${r.team}`; tip.appendChild(head);
+    ARMS.forEach(x => {
+      const row = h("div", "row");
+      const b = document.createElement("b"); b.textContent = one(r.arms[x.key].notified_per_question);
+      const k = h("span", "key"); k.style.background = x.color;
+      row.append(b, k, document.createTextNode(x.name));
+      tip.appendChild(row);
+    });
+    tip.hidden = false;
+    const sb = svg.getBoundingClientRect(), bb = box.getBoundingClientRect();
+    const px = sb.left - bb.left + (X(r.team) / W) * sb.width;
+    const py = clientY != null ? clientY - bb.top : sb.top - bb.top + sb.height * .35;
+    const left = px + 14 + tip.offsetWidth > bb.width ? px - 14 - tip.offsetWidth : px + 14;
+    tip.style.left = Math.max(0, left) + "px";
+    tip.style.top = Math.max(0, py - tip.offsetHeight / 2) + "px";
+  };
+  const hide = () => { at = -1; tip.hidden = true; xhair.setAttribute("opacity", 0); };
+  const nearest = clientX => {
+    const sb = svg.getBoundingClientRect();
+    const vx = ((clientX - sb.left) / sb.width) * W;
+    let best = 0;
+    sizes.forEach((r, i) => { if (Math.abs(X(r.team) - vx) < Math.abs(X(sizes[best].team) - vx)) best = i; });
+    return best;
+  };
+  hit.addEventListener("pointermove", e => show(nearest(e.clientX), e.clientX, e.clientY));
+  hit.addEventListener("pointerleave", hide);
+  svg.addEventListener("focus", () => show(at < 0 ? sizes.length - 1 : at));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    show(Math.max(0, Math.min(sizes.length - 1, (at < 0 ? sizes.length - 1 : at) + (e.key === "ArrowRight" ? 1 : -1))));
+  });
 }
 
 // ---------------------------------------------------------------- wire
@@ -1118,6 +1357,14 @@ async function init() {
   paintLedger(S.trace);
   getJSON(S.index.rogue).catch(() => {});
 }
+fetch("bench.json").then(r => (r.ok ? r.json() : Promise.reject(r.status))).then(d => {
+  renderNumbers(d);
+  let width = $("#scale-box").clientWidth, timer = 0;
+  addEventListener("resize", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { const now = $("#scale-box").clientWidth; if (now !== width) { width = now; drawScale(d.sizes); } }, 150);
+  });
+}).catch(() => { $("#kpis").textContent = "The benchmark results didn't load."; });
 init();
 })();
 </script>
