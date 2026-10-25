@@ -1,0 +1,27 @@
+name: site
+
+# Anything pushed to main under site/ goes live: site/ is copied to the gh-pages branch, which GitHub Pages serves.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy site/ to the gh-pages branch
+        run: |
+          git subtree split --prefix site -b site-only
+          git push -f origin site-only:gh-pages
