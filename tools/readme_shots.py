@@ -8,7 +8,7 @@ Serves site/ on a local port, opens it in headless Chromium, and saves:
   hero.png      the night-sky header and the headline
   night.gif     the first part of the night playing (needs ffmpeg)
   rogue.png     the rogue agent story once every attempt has been stopped
-  btn-*.png     the site's three buttons on their own, so the README can link each one
+  btn-*.png     the site's buttons on their own, plus one for the demo video, so the README can link each one
 
 Needs Playwright for Python (pip install playwright, then playwright install chromium).
 """
@@ -83,6 +83,7 @@ def rogue(browser, url, out):
 
 BUTTONS = (  # file, label, the lamp-colored main button?
     ("btn-play.png", "Play the night", True),
+    ("btn-video.png", "Watch the demo video", False),
     ("btn-rogue.png", "Watch an agent go rogue", False),
     ("btn-discord.png", "Try it live in Discord", False),
 )

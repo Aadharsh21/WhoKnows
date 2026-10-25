@@ -14,13 +14,14 @@ Everyone on the team gets their own AI agent. When you need something, your agen
 
 <p>
   <a href="https://aadharsh21.github.io/WhoKnows/"><img src="docs/readme/btn-play.png" alt="Play the night" height="46"></a>
+  <a href="https://youtu.be/fG9bHwREPaI"><img src="docs/readme/btn-video.png" alt="Watch the demo video" height="46"></a>
   <a href="https://aadharsh21.github.io/WhoKnows/#rogue"><img src="docs/readme/btn-rogue.png" alt="Watch an agent go rogue" height="46"></a>
   <a href="https://discord.gg/NdTDPptqSs"><img src="docs/readme/btn-discord.png" alt="Try it live in Discord" height="46"></a>
 </p>
 
 A 10-person capstone team, the night before demo day. Everything below comes from running the real agents, and at five points you decide for a teammate. In Discord, DM the bot and say `seat nina`, and bring a friend to take Omar's seat. Every step, with the reply you should get, is in [Test it with the demo team](#test-it-with-the-demo-team).
 
-**[How it works](#how-the-agents-decide)** · **[In numbers](#in-numbers)** · **[Rogue agent](#when-an-agent-goes-rogue)** · **[Test it](#test-it-with-the-demo-team)** · **[Code](#run-it-yourself)** · **[Discord](https://discord.gg/NdTDPptqSs)** · [![tests](https://github.com/Aadharsh21/WhoKnows/actions/workflows/tests.yml/badge.svg)](https://github.com/Aadharsh21/WhoKnows/actions/workflows/tests.yml)
+**[Demo video (1:25)](https://youtu.be/fG9bHwREPaI)** · **[How it works](#how-the-agents-decide)** · **[In numbers](#in-numbers)** · **[Rogue agent](#when-an-agent-goes-rogue)** · **[Test it](#test-it-with-the-demo-team)** · **[Code](#run-it-yourself)** · **[Discord](https://discord.gg/NdTDPptqSs)** · [![tests](https://github.com/Aadharsh21/WhoKnows/actions/workflows/tests.yml/badge.svg)](https://github.com/Aadharsh21/WhoKnows/actions/workflows/tests.yml)
 
 Built for the Cubbie Hackathon at DevHacks 2026, Track 2 (agent-to-agent coordination).
 
