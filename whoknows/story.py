@@ -80,7 +80,7 @@ def _main(net: Network) -> None:
         theo.person["busy"] = True
 
     net.advance_to(at("01:30"))
-    net.caption("Every half hour the agents compare who's doing what, sharing part names and nothing else. "
+    net.caption("1:30 AM team check. The agents compare who's doing what, sharing part names and nothing else. "
                 "They also count who knows each part the demo needs, so no part depends on a single person.")
     net.team_check()
 

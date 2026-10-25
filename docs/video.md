@@ -10,7 +10,7 @@ Record the site at 1440 by 900 in Chrome with the speed control at 1x, and Disco
 | 0:29 | Step to 1:35 and 1:38. Show the two change requests waiting on Omar's window. | Nina and Theo both ask to change Omar's file, in the same lines. Neither edits it. Omar's agent drafts both and holds them for him. |
 | 0:38 | Step to 7:00. Omar's phone: receipts, the side by side pick, the commit card. | At seven he wakes up to a receipt of what his agent did overnight, picks Nina's fix, and the change goes out like a commit, to the three people it affects, not all ten. |
 | 0:50 | The trust question, then 7:50: Nina's one-line change saves itself, with undo. | Then his agent asks: let Nina's small changes through next time? He says yes. Her next one saves on its own, and he can undo it in one tap. |
-| 0:59 | The board: "Checkout page: Nina (Ade is backup)". | Every half hour the agents also check that no part of the demo depends on one person. |
+| 0:59 | The board: "Checkout page: Nina (Ade is backup)". | At the team check, the agents also make sure no part of the demo depends on one person. |
 | 1:04 | Switch to "If an agent goes rogue". Red stops on the stage. | And if an agent gets tricked into stealing secrets or wiping a file, the gate stops it. It doesn't trust the agent. |
 | 1:12 | Scroll to "In numbers". Hold on the table. | We ran the real agents against a week of questions on generated teams of thirty. A group chat notified 29 people per question. WhoKnows notified about one, and its agents never pinged anyone asleep. |
 | 1:22 | Discord: Swayam types "why would a retry get a 409?", gets the quote, then taps Approve on a change from Omar's seat. | It runs live in Discord, with buttons for every decision. |

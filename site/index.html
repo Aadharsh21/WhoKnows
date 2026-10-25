@@ -495,7 +495,7 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
       <dt>Settle conflicts</dt>
       <dd>Two fixes for the same lines wait side by side and the owner picks. Three people who need the same person get one shared slot instead of three interruptions. Two people writing the README get a split. A part nobody owns gets a volunteer, starting with whoever is awake and good at it.</dd>
       <dt>Earn trust, keep receipts</dt>
-      <dd>Anything an agent does without asking while its person sleeps goes on a <strong>receipt</strong> they see when they wake, with one tap to make it ask first next time. After an owner approves a small, clean change, their agent offers to let that teammate's small changes through without asking. Each one still sends a commit, and <strong>undo is one tap</strong>.</dd>
+      <dd>Anything an agent does without asking while its person sleeps goes on a <strong>receipt</strong> they see when they wake, with one tap to make it ask first next time. After an owner approves a small, clean change, their agent offers to let that teammate's small edits through without asking, but only edits that can't change how the code runs: docs, comments and docstrings. Each one still sends a commit, and <strong>undo is one tap</strong>.</dd>
       <dt>Send changes like commits</dt>
       <dd>A change to someone's file is a request, drafted on the owner's side, shown as an exact before and after, and saved only after they approve. Then it goes out like a commit, but <strong>only to the people it affects</strong>: whoever asked, anyone with a copy, anyone who works on that code or watches it. Copies refresh themselves. Everyone else hears nothing.</dd>
     </dl>
@@ -582,7 +582,7 @@ python3 -m whoknows --choose omar_fix=theo --choose theo_help=no
 python3 -m whoknows --rogue
 python3 -m whoknows.bench        # the numbers above</pre>
     <p class="intro">The same agents also run live in Discord: each person DMs the bot, takes a seat, and talks to their own agent, while empty seats are played by simulated teammates. Every message between agents shows up in a #backchannel channel.</p>
-    <p class="intro">83 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
+    <p class="intro">91 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
   </section>
 </main>
 

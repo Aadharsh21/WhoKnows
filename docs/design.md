@@ -43,7 +43,7 @@ All messages are small JSON bodies. The main ones:
 
 ## Trust that grows
 
-Agents earn autonomy the way people do. After an owner approves a small, clean change from a teammate, the agent offers a rule: let that teammate's changes of five lines or fewer, with no red flags, in that folder, go through without asking. Each one still sends a commit and asks "keep it?" with undo one tap away. Anything an agent does unasked while its person sleeps goes on a receipt they see when they wake, with a one-tap way to tighten the rules.
+Agents earn autonomy the way people do. After an owner approves a small, clean change from a teammate, the agent offers a rule: let that teammate's changes of five lines or fewer, with no red flags, in that folder, go through without asking, as long as they can't change how code runs (docs, comments, docstrings; Python is compared by its syntax tree). Each one still sends a commit and asks "keep it?" with undo one tap away. Anything an agent does unasked while its person sleeps goes on a receipt they see when they wake, with a one-tap way to tighten the rules.
 
 ## Threat model
 
@@ -58,7 +58,7 @@ The agent itself might be fooled, for example by instructions planted in a READM
 
 ## Evidence
 
-`python3 -m whoknows.bench` generates five teams of 30 with a plan, a git history and notes, asks a week of questions, and runs the real agents against two baselines. People notified per question: 29 in a group chat, 5.3 messaging your best guess, 1.2 with WhoKnows. Notifications reaching someone asleep per week: 678, 117, and 12, all 12 from the times WhoKnows fell back to the group chat. 83 tests run on Python 3.9 and 3.13 in CI. `python3 -m whoknows.repo` runs the same agents on any real git repo, one per contributor, built from their own commits.
+`python3 -m whoknows.bench` generates five teams of 30 with a plan, a git history and notes, asks a week of questions, and runs the real agents against two baselines. People notified per question: 29 in a group chat, 5.3 messaging your best guess, 1.2 with WhoKnows. Notifications reaching someone asleep per week: 678, 117, and 12, all 12 from the times WhoKnows fell back to the group chat. 91 tests run on Python 3.9 and 3.13 in CI. `python3 -m whoknows.repo` runs the same agents on any real git repo, one per contributor, built from their own commits.
 
 ## Limits
 

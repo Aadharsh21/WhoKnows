@@ -148,7 +148,7 @@ Other agents learn only short answers: "owns it", "changed it recently", "no", "
 - Before giving away their time.
 - Before sharing anything not marked shareable.
 - Before any change to their files. A change request is drafted on the owner's side and shown as an exact before and after, with red flags added in code (large deletions, anything that looks like a key, requests to skip approval).
-- Until they say otherwise: after approving a small, clean change, the owner can let that teammate's changes of five lines or fewer, with no red flags, in that folder, go through without asking. Each one still sends a commit and asks "keep it?", and undo is one tap.
+- Until they say otherwise: after approving a small, clean change, the owner can let that teammate's changes of five lines or fewer, with no red flags, in that folder, go through without asking. Only edits that can't change how code runs qualify: docs, comments and docstrings. Approvals to share a file also expire as soon as the file changes. Each one still sends a commit and asks "keep it?", and undo is one tap.
 - **Never while they sleep.** Questions wait for morning and news goes into one summary. Anything an agent did without asking goes on a receipt, with one tap to make it ask first next time. In all 48 branches, no phone lights up for someone asleep, and a test checks it.
 
 ## Track 2 fit
@@ -221,7 +221,7 @@ Have a friend take Omar's seat and they'll get the approve and decline buttons a
 python3 -m unittest discover -s tests
 ```
 
-83 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo, change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, the benchmark, real repos (bots left out, CODEOWNERS, no email addresses in quotes), and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
+91 tests cover the sharing tiers, the gate (including made-up and private quotes), search, file paths, diffs and collisions, who-knows routing from git history, answers with sources, passing questions on, backups for parts only one person knows, receipts, trust rules and undo (only for edits that can't change what code does), change requests (picking between rivals, rewriting stale requests, red flags), commit routing, time slots, the team board, every one of the 48 story branches (nothing private crosses, nobody is woken, runs are identical), the rogue agent, approvals that expire when a file changes, the benchmark, real repos (bots left out, CODEOWNERS, no email addresses in quotes), and the live Discord layer. GitHub Actions runs them on Python 3.9 and 3.13 on every push, and checks that the site's traces match the code.
 
 ## Project layout
 
