@@ -1,5 +1,7 @@
 # Running the public Discord demo
 
+The public server is **WhoKnows Sandbox**: https://discord.gg/NdTDPptqSs. The invite never expires.
+
 ## For whoever hosts the bot (on a Mac)
 
 1. Get the latest code: `git pull` in your WhoKnows folder.
