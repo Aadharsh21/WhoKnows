@@ -61,7 +61,7 @@ a { color: var(--agent); text-underline-offset: 3px; }
 .mark { font-size: 22px; font-weight: 800; color: var(--ink); text-decoration: none; font-variation-settings: "CASL" 1, "MONO" 0; }
 .mark i { font-style: normal; color: var(--agent); font-variation-settings: "CASL" 0, "MONO" 0; }
 .top nav { display: flex; gap: 22px; font-size: 16px; }
-.top nav a { color: var(--dim); text-decoration: none; }
+.top nav a { color: var(--dim); text-decoration: none; white-space: nowrap; }
 .top nav a:hover { color: var(--ink); }
 
 /* hook */
@@ -79,6 +79,16 @@ h1 .agent { font-weight: 640; color: var(--agent); }
 .btn.lamp { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
 .btn.lamp:hover { background: #FFD28A; }
 .fine { margin: 18px 0 0; font-size: 15px; color: var(--faint); max-width: 40em; }
+.proof { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; max-width: 36em; }
+.proof div { border-top: 1px solid var(--line); padding-top: 10px; }
+.proof b { display: block; font-size: 30px; line-height: 1.1; font-weight: 700; color: var(--ink); }
+.proof span { display: block; margin-top: 4px; font-size: 14px; line-height: 1.4; color: var(--dim); }
+.proof em { font-style: normal; }
+.proof-link { display: inline-block; margin-top: 10px; font-size: 15px; }
+.uses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 40px; margin: 0; padding: 0; list-style: none; }
+.uses li { padding: 18px 0; border-top: 1px solid var(--line); }
+.uses h3 { margin: 0 0 6px; font-size: 18px; }
+.uses p { margin: 0; font-size: 16px; color: var(--dim); }
 
 /* player */
 .player { padding-bottom: 28px; }
@@ -286,6 +296,7 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
   .rules dt { padding-bottom: 4px; }
   .rules dd { border-top: 0; padding-top: 0; }
   .ledger { grid-template-columns: 1fr; gap: 28px; }
+  .uses { grid-template-columns: 1fr; }
   .kpis { grid-template-columns: 1fr; gap: 14px; }
   .charts { grid-template-columns: 1fr; gap: 36px; }
 }
@@ -294,6 +305,8 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
   .wrap { padding: 0 16px; }
   .lede { font-size: 17px; margin-bottom: 16px; }
   .fine { font-size: 14px; }
+  .proof { gap: 10px; }
+  .proof b { font-size: 24px; }
   .cta .btn { flex: 1 1 auto; }
   .top nav { gap: 14px; font-size: 15px; }
   .top nav a.opt { display: none; }
@@ -325,7 +338,7 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
   <a class="mark" href="#">who<i>knows</i></a>
   <nav aria-label="Sections">
     <a href="#how">How it works</a>
-    <a href="#numbers">In numbers</a>
+    <a href="#numbers" class="opt">In numbers</a>
     <a href="#rogue" class="opt">Rogue agent</a>
     <a href="#code">Code</a>
   </nav>
@@ -335,7 +348,15 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
   <section class="hook wrap">
     <h1><span class="human">Your teammate's asleep.</span><span class="agent">Their agent isn't.</span></h1>
     <div class="hook-row">
-      <p class="lede">Everyone on the team gets their own AI agent. When you need something, your agent finds <strong>whoever knows about it</strong>, gets what <strong>that person's rules</strong> allow, and <strong>waits for their yes</strong> before touching their files or their time. Nobody gets woken up.</p>
+      <div>
+        <p class="lede">Everyone on the team gets their own AI agent. When you need something, your agent finds <strong>whoever knows about it</strong>, gets what <strong>that person's rules</strong> allow, and <strong>waits for their yes</strong> before touching their files or their time. Nobody gets woken up.</p>
+        <div class="proof" aria-label="Measured on a week of questions">
+          <div><b id="p-notified">1.2</b><span>people notified per question (<em id="p-chat">29</em> in a group chat)</span></div>
+          <div><b id="p-night">0</b><span>pings from an agent to anyone asleep</span></div>
+          <div><b id="p-spot">49%</b><span>of questions answered on the spot from shared notes</span></div>
+        </div>
+        <a class="proof-link" href="#numbers">How we measured it</a>
+      </div>
       <div>
         <div class="cta">
           <button class="btn lamp" id="go-main" type="button">Play the night</button>
@@ -389,6 +410,19 @@ table.nums caption { caption-side: bottom; text-align: left; padding-top: 10px; 
       <p>Every half hour the agents post which parts their person owns and knows. Only part names go up, nothing else. If a part the demo needs is known by just one person, someone awake is asked to be the backup.</p>
       <ul class="parts" id="parts"></ul>
     </div>
+  </section>
+
+  <section class="text wrap" id="uses">
+    <h2>Who needs this</h2>
+    <p class="intro">Any group where the person who knows is often busy or asleep.</p>
+    <ul class="uses">
+      <li><h3>Capstone and senior design</h3><p>Eight to twelve people, one demo day, and nobody remembers who wrote which part. That's the night in the player above.</p></li>
+      <li><h3>Hackathon teams</h3><p>Thirty-six hours, and half the team is asleep at any given moment. "Who changed the API?" gets an answer without waking anyone.</p></li>
+      <li><h3>Student orgs</h3><p>Officers graduate and take what they know with them. The backup check spots the parts only one person knows while there's still time to hand them over.</p></li>
+      <li><h3>Research labs</h3><p>"Which script made figure 3?" gets answered from a grad student's own notes, with the file named, even at 2 AM.</p></li>
+      <li><h3>Teams across time zones</h3><p>Online and international students work while their teammates sleep twelve hours away. The agent answers for the person who's asleep.</p></li>
+      <li><h3>Course staff</h3><p>Who's grading question 3, where the rubric lives, and who can cover office hours, without a message to every TA.</p></li>
+    </ul>
   </section>
 
   <section class="text wrap" id="how">
@@ -478,7 +512,7 @@ python3 -m whoknows --choose omar_fix=theo --choose theo_help=no
 python3 -m whoknows --rogue
 python3 -m whoknows.bench        # the numbers above</pre>
     <p class="intro">The same agents also run live in Discord: each person DMs the bot, takes a seat, and talks to their own agent, while empty seats are played by simulated teammates. Every message between agents shows up in a #backchannel channel.</p>
-    <p class="intro">73 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
+    <p class="intro">75 tests cover the sharing tiers, the gate, quotes, colliding changes, commits, trust and undo, the team board and backups, every one of the 48 story branches, the rogue agent, the benchmark, and the live Discord layer. They run on Python 3.9 and 3.13 on every push. <a href="https://github.com/Aadharsh21/WhoKnows" id="repo-link">See the code on GitHub</a>, or read the <a href="https://github.com/Aadharsh21/WhoKnows/blob/main/docs/design.md">one-page design</a>.</p>
   </section>
 </main>
 
@@ -1187,6 +1221,10 @@ const keyed = x => `<span class="key" style="background:${x.color}"></span>${esc
 
 function renderNumbers(d) {
   const a = d.main.arms, wk = a.whoknows, gc = a.group_chat, bg = a.best_guess;
+  $("#p-notified").textContent = num(wk.notified_per_question);
+  $("#p-chat").textContent = num(gc.notified_per_question);
+  $("#p-night").textContent = whole(wk.agent_night_pings);
+  $("#p-spot").textContent = pct(wk.answered_at_once);
   const kpis = $("#kpis");
   kpis.innerHTML = "";
   [
